@@ -11,7 +11,8 @@ public sealed class SettingsWindow : Window
     public SettingsWindow(Settings current)
     {
         Result = current; Title = "RigPulse settings"; Width = 440; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize; WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        var panel = new StackPanel { Margin = new Thickness(22) }; Content = panel;
+        MaxHeight = Math.Max(300, SystemParameters.WorkArea.Height - 40);
+        var panel = new StackPanel { Margin = new Thickness(22) }; Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         panel.Children.Add(new TextBlock { Text = "RigPulse", FontSize = 24, FontWeight = FontWeights.Bold });
         panel.Children.Add(new TextBlock { Text = "Read-only hardware monitoring · v" + typeof(Program).Assembly.GetName().Version?.ToString(3), Margin = new Thickness(0, 4, 0, 18) });
         Slider AddSlider(string label, double minimum, double maximum, double value)
@@ -27,10 +28,21 @@ public sealed class SettingsWindow : Window
         var integrated = new CheckBox { Content = "Show Intel integrated graphics", IsChecked = current.ShowIntegratedGpu, Margin = new Thickness(0, 0, 0, 12) }; panel.Children.Add(integrated);
         var startup = new CheckBox { Content = "Start at Windows sign-in (current user)", IsChecked = current.StartAtLogin, Margin = new Thickness(0, 0, 0, 16) }; panel.Children.Add(startup);
         panel.Children.Add(new TextBlock { Text = "Missing temperatures or fans? Restart RigPulse as administrator from the tray menu. Sensor support depends on the hardware and driver. Fan labels can be edited in settings.json using sensor IDs from diagnostics.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 18) });
+        panel.Children.Add(new TextBlock { Text = "Fan color references (RPM; display only)", FontWeight = FontWeights.Bold });
+        TextBox AddRpm(string label, int value)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 4) };
+            row.Children.Add(new TextBlock { Text = label, Width = 200, VerticalAlignment = VerticalAlignment.Center });
+            var input = new TextBox { Text = value.ToString(System.Globalization.CultureInfo.InvariantCulture), Width = 80 }; row.Children.Add(input); panel.Children.Add(row); return input;
+        }
+        var cpuRpm = AddRpm("CPU fan reference", current.CpuFanMaxRpm);
+        var systemRpm = AddRpm("System fan reference", current.SystemFanMaxRpm);
+        panel.Children.Add(new TextBlock { Text = "Fan colors: yellow at 60%, orange at 80%, red at 95% of the reference. Red indicates high speed, not a fan fault. Per-sensor overrides: FanMaxRpm in settings.json.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 16) });
         var save = new Button { Content = "Save", Padding = new Thickness(15, 7, 15, 7), HorizontalAlignment = HorizontalAlignment.Right };
         save.Click += (_, _) => {
+            if (!int.TryParse(cpuRpm.Text, out int cpuLimit) || !int.TryParse(systemRpm.Text, out int systemLimit) || cpuLimit is < 100 or > 30000 || systemLimit is < 100 or > 30000) { System.Windows.MessageBox.Show("Enter fan reference speeds between 100 and 30000 RPM.", "Invalid fan reference"); return; }
             Result = new Settings { FontSize = (int)font.Value, MaxFans = (int)fans.Value, Opacity = opacity.Value / 100,
-                Monitor = monitor.SelectedIndex, ShowIntegratedGpu = integrated.IsChecked == true, StartAtLogin = startup.IsChecked == true, FanLabels = new(current.FanLabels) };
+                Monitor = monitor.SelectedIndex, ShowIntegratedGpu = integrated.IsChecked == true, StartAtLogin = startup.IsChecked == true, FanLabels = new(current.FanLabels), CpuFanMaxRpm = cpuLimit, SystemFanMaxRpm = systemLimit, FanMaxRpm = new(current.FanMaxRpm) };
             try {
                 using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
                 if (Result.StartAtLogin) key.SetValue("RigPulse", $"\"{Environment.ProcessPath}\""); else key.DeleteValue("RigPulse", false);

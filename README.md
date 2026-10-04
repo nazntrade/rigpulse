@@ -27,6 +27,24 @@ No fan speeds, voltages, clocks, power limits or overclock settings are changed.
 
 **Stable width:** thin dividers separate CPU, RAM, each GPU and individual fans; a middle dot separates each GPU temperature from its VRAM reading; values occupy fixed-width cells. `1% → 100%`, `32°C → 100°C` and changing RAM/RPM values do not resize the bar. The layout changes only when settings or available hardware change. A narrow display wraps cells while keeping their widths fixed. Units marked `G` are GiB (1024³ bytes).
 
+## Reading colors
+
+Green → yellow → orange → light red indicates increasing temperature, utilization or fan speed. Missing, invalid and stale readings are gray.
+
+| Reading | Yellow from | Orange from | Light red from |
+| --- | --- | --- | --- |
+| CPU/GPU load, RAM/VRAM use | 60% | 80% | 95% |
+| CPU temperature | 65°C | 80°C | 90°C |
+| GPU temperature | 65°C | 75°C | 85°C |
+| Fan speed relative to its reference | 60% | 80% | 95% |
+
+Fan references default to **1800 RPM for CPU fans** and **1300 RPM for system fans**. Change them in Settings to match your fans. These are display references, not measured or manufacturer-rated maximum speeds. A red fan reading means high speed, not a fan fault. RigPulse does not control fans.
+
+The optional FanMaxRpm object in settings maps diagnostic sensor IDs to individual reference RPM values, overriding the CPU/system defaults.
+
+![Synthetic high-load color example](docs/rigpulse-colors-demo.png)
+
+*Synthetic values demonstrate colors; this is not a hardware stress-test result.*
 ## Hardware and freshness
 
 - CPU utilization uses Windows `GetSystemTimes`; physical RAM uses `GlobalMemoryStatusEx`. CPU utilization can differ from frequency-adjusted “CPU utility” in other monitors.

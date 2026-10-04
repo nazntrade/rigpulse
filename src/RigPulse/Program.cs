@@ -39,7 +39,7 @@ public static class Program
             if (!mutex.WaitOne(5000)) return;
             var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
             app.DispatcherUnhandledException += (_, e) => { Log(e.Exception); e.Handled = true; };
-            var window = new OverlayWindow(args.Contains("--demo") || args.Contains("--layout-test"));
+            var window = new OverlayWindow(args.Contains("--demo") || args.Contains("--layout-test"), args.Contains("--peak-demo"));
             if (args.Contains("--layout-test"))
             {
                 int outputAt = Array.IndexOf(args, "--output");

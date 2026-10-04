@@ -70,3 +70,11 @@ RAM and VRAM values are now left-aligned inside their original fixed-width cells
 ## 1.0.0 stable release
 
 On 2026-10-04 the user confirmed that the installed 0.1.3 overlay no longer freezes during their full CPU stress test. This is a user-observed result, separate from the bounded scheduling and WPF checks above. Version 1.0.0 retains the same polling and layout behavior; it does not expand the set of physically validated hardware.
+
+## 1.0.1 color validation
+
+- Automated tests verify all four colors, distinct CPU/GPU temperature thresholds, stale/invalid values and independent sensor references.
+- Screenshot readings (CPU 1818 RPM, system 1263 and 1294 RPM) reach light red with default 1800/1300 RPM references.
+- Normal and synthetic peak WPF captures retain 1188 DIP width across all six samples at 150% DPI.
+- Elevated diagnostics read CPU temperature, both NVIDIA cards and three active fans.
+- No new hot CPU stress test was run for this display-only change; validated polling and scheduling remain unchanged.

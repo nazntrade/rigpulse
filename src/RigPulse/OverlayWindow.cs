@@ -20,15 +20,18 @@ public sealed class OverlayWindow : Window
     private readonly WorkerHost<SystemFrame>? system;
     private readonly WorkerHost<SensorFrame>? sensors;
     private readonly bool demo;
+    private readonly bool peakDemo;
+    private static Brush ColorBrush(byte red, byte green, byte blue) { var brush = new SolidColorBrush(Color.FromRgb(red, green, blue)); brush.Freeze(); return brush; }
+    private static readonly Brush greenBrush = ColorBrush(166, 255, 111), yellowBrush = ColorBrush(255, 230, 109), orangeBrush = ColorBrush(255, 166, 64), redBrush = ColorBrush(255, 101, 101);
     private string topology = "";
     private bool paused;
     private int tick;
     private HashSet<string>? selectedFans;
     [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr window, int index);
     [DllImport("user32.dll")] private static extern int SetWindowLong(IntPtr window, int index, int value);
-    public OverlayWindow(bool demo)
+    public OverlayWindow(bool demo, bool peakDemo = false)
     {
-        this.demo = demo;
+        this.demo = demo; this.peakDemo = peakDemo;
         Title = "RigPulse"; WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize;
         AllowsTransparency = true; Background = Brushes.Transparent; Topmost = true;
         ShowInTaskbar = false; ShowActivated = false; SizeToContent = SizeToContent.WidthAndHeight;
@@ -61,14 +64,15 @@ public sealed class OverlayWindow : Window
         if (paused) return;
         system?.Check(); sensors?.Check();
         var now = DateTimeOffset.UtcNow;
-        var fast = demo ? new SystemFrame(now, ++tick % 2 == 0 ? 100 : 2, tick % 2 == 0 ? 60 : 9.8, 63.7) : system?.Latest;
-        var slow = demo ? new SensorFrame(now, tick % 2 == 0 ? 100 : 32,
-            [new("/gpu-nvidia/0", "NVIDIA GPU 1", "GpuNvidia", tick % 2 == 0 ? 100 : 0, 38, .4, 15.9), new("/gpu-nvidia/1", "NVIDIA GPU 2", "GpuNvidia", 0, 35, .4, 15.9)],
-            [new("/fan/0", "CPU Fan", tick % 2 == 0 ? 1600 : 699), new("/fan/1", "SYS Fan #1", 708), new("/fan/2", "SYS Fan #2", 700)]) : sensors?.Latest;
+        if (demo) tick++;
+        var fast = demo ? new SystemFrame(now, (peakDemo || tick % 2 == 0) ? 100 : 2, (peakDemo || tick % 2 == 0) ? 60 : 9.8, 63.7) : system?.Latest;
+        var slow = demo ? new SensorFrame(now, (peakDemo || tick % 2 == 0) ? 100 : 32,
+            [new("/gpu-nvidia/0", "NVIDIA GPU 1", "GpuNvidia", (peakDemo || tick % 2 == 0) ? 100 : 0, peakDemo ? 86 : 38, peakDemo ? 15.2 : .4, 15.9), new("/gpu-nvidia/1", "NVIDIA GPU 2", "GpuNvidia", peakDemo ? 100 : 0, peakDemo ? 86 : 35, peakDemo ? 15.2 : .4, 15.9)],
+            [new("/fan/0", "CPU Fan", (peakDemo || tick % 2 == 0) ? 1818 : 699), new("/fan/1", "SYS Fan #1", peakDemo ? 1263 : 708), new("/fan/2", "SYS Fan #2", peakDemo ? 1294 : 700)]) : sensors?.Latest;
         if (slow is not null && selectedFans is null && slow.Fans.Any(f => f.Rpm is > 0))
             selectedFans = slow.Fans.Where(f => f.Rpm is > 0).Take(settings.MaxFans).Select(f => f.Id).ToHashSet(StringComparer.Ordinal);
         if (slow is not null && selectedFans is not null) slow = slow with { Fans = slow.Fans.Where(f => selectedFans.Contains(f.Id)).ToArray() };
-        var metrics = Metrics.Build(fast, slow, settings.ShowIntegratedGpu, settings.MaxFans, now);
+        var metrics = Metrics.Build(fast, slow, settings.ShowIntegratedGpu, settings.MaxFans, now, settings);
         if (demo) metrics = metrics.Select(m => m.Id == "status" ? m with { Text = "Demo" } : m).ToList();
         metrics = metrics.Select(m => settings.FanLabels.TryGetValue(m.Id, out var label) ? m with { Label = label.Length > 18 ? label[..18] : label } : m with { Label = m.Label.Replace("System Fan", "SYS Fan", StringComparison.Ordinal) }).ToList();
         string key = string.Join("|", metrics.Select(m => m.Id + ":" + m.Label));
@@ -101,8 +105,10 @@ public sealed class OverlayWindow : Window
         foreach (var m in metrics)
         {
             values[m.Id].Text = m.Text; values[m.Id].ToolTip = m.Tooltip;
-            values[m.Id].Foreground = m.Level >= 80 ? new SolidColorBrush(Color.FromRgb(255, 166, 64))
-                : m.Level >= 60 ? new SolidColorBrush(Color.FromRgb(255, 230, 109)) : new SolidColorBrush(Color.FromRgb(166, 255, 111));
+            values[m.Id].Foreground = Metrics.Tone(m) switch {
+                MetricTone.Critical => redBrush, MetricTone.High => orangeBrush, MetricTone.Medium => yellowBrush,
+                MetricTone.Low => greenBrush, _ => Brushes.Gray
+            };
         }
         Opacity = settings.Opacity; Position();
     }

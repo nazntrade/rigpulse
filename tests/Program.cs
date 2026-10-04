@@ -31,3 +31,28 @@ if (OperatingSystem.IsWindows())
     finally { current.PriorityClass = original; }
 }
 Console.WriteLine("PASS: scheduler-inherited BelowNormal is overridden for responsive polling.");
+
+var references = new Settings();
+var peakSensors = sensor with { CpuTemperature = 99, Fans = [new("cpu-fan", "CPU Fan", 1818), new("case-back", "System Fan #1", 1263), new("case-front", "System Fan #2", 1294)] };
+var peakMetrics = Metrics.Build(new(now, 100, 62, 64), peakSensors, false, 3, now, references);
+foreach (var id in new[] { "cpu-load", "cpu-temp", "ram", "cpu-fan", "case-back", "case-front" })
+    Check(Metrics.Tone(peakMetrics.Single(m => m.Id == id)) == MetricTone.Critical, "Screenshot peak must use light red: " + id);
+var gpuPeaks = Metrics.Build(new(now, 5, 10, 64), sensor with { Gpus = [gpu with { Load = 100, Temperature = 86, Used = 15.2 }] }, false, 3, now);
+foreach (var metric in gpuPeaks.Where(m => m.Id.StartsWith(gpu.Id)))
+    Check(Metrics.Tone(metric) == MetricTone.Critical, "GPU load, temperature and memory need independent critical colors.");
+Check(Metrics.Tone(low.Single(m => m.Id == "cpu-temp")) == MetricTone.Low, "Idle temperatures must be green.");
+Check(Metrics.Tone(new("cpu-temp", "", 5, "70°C", 70)) == MetricTone.Medium, "Warm CPU must be yellow.");
+Check(Metrics.Tone(new("cpu-temp", "", 5, "82°C", 82)) == MetricTone.High, "Hot CPU must be orange.");
+Check(Metrics.Tone(new("gpu-temp", "", 5, "78°C", 78)) == MetricTone.High, "GPU temperature must have its own thresholds.");
+var invalidFan = Metrics.Build(new(now, 1, 10, 64), sensor with { Fans = [new("bad-fan", "CPU Fan", double.NaN)] }, false, 3, now);
+Check(Metrics.Tone(invalidFan.Single(m => m.Id == "bad-fan")) == MetricTone.Unavailable, "Invalid fan readings must be gray, not green.");
+Check(Metrics.Tone(stale.Single(m => m.Id == "fan")) == MetricTone.Unavailable, "Stale fan readings must not show a current speed color.");
+references.FanMaxRpm["case-back"] = 2500;
+var overridden = Metrics.Build(new(now, 1, 10, 64), peakSensors, false, 3, now, references);
+Check(Metrics.Tone(overridden.Single(m => m.Id == "case-back")) == MetricTone.Low, "Per-sensor reference must override the system fan default.");
+Check(Metrics.Tone(overridden.Single(m => m.Id == "case-front")) == MetricTone.Critical, "One fan's override must not change another fan.");
+var restoredSettings = System.Text.Json.JsonSerializer.Deserialize<Settings>(System.Text.Json.JsonSerializer.Serialize(references))!;
+Check(restoredSettings.FanMaxRpm["case-back"] == 2500 && restoredSettings.CpuFanMaxRpm == 1800, "Fan references must survive saving settings.");
+references.CpuFanMaxRpm = 0; references.SystemFanMaxRpm = int.MaxValue; references.FanMaxRpm["bad"] = 0; references.Normalize();
+Check(references.CpuFanMaxRpm > 0 && references.SystemFanMaxRpm <= 30000 && !references.FanMaxRpm.ContainsKey("bad"), "Invalid references must not divide by zero or remain enabled.");
+Console.WriteLine("PASS: four colors, screenshot fan peaks, distinct temperature thresholds, stale/invalid readings and independent fan references.");

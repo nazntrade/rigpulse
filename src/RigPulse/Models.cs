@@ -9,16 +9,34 @@ public record FanFrame(string Id, string Name, double? Rpm);
 public record SensorFrame(DateTimeOffset Timestamp, double? CpuTemperature, GpuFrame[] Gpus, FanFrame[] Fans, string? Error = null);
 public record Metric(string Id, string Label, int Characters, string Text, double? Level = null, string? Tooltip = null);
 
+public enum MetricTone { Unavailable, Low, Medium, High, Critical }
+
 public static class Metrics
 {
+    public static MetricTone Tone(Metric metric)
+    {
+        if (metric.Id == "status" && metric.Text is "Stale" or "Partial") return MetricTone.Medium;
+        if (metric.Level is not double level || !double.IsFinite(level)) return MetricTone.Unavailable;
+        var thresholds = metric.Id == "cpu-temp" ? (65d, 80d, 90d)
+            : metric.Id.EndsWith("-temp", StringComparison.Ordinal) ? (65d, 75d, 85d) : (60d, 80d, 95d);
+        return level >= thresholds.Item3 ? MetricTone.Critical : level >= thresholds.Item2 ? MetricTone.High
+            : level >= thresholds.Item1 ? MetricTone.Medium : MetricTone.Low;
+    }
+    public static int FanReference(FanFrame fan, Settings settings)
+    {
+        if (settings.FanMaxRpm.TryGetValue(fan.Id, out int limit) && limit > 0) return limit;
+        string label = settings.FanLabels.TryGetValue(fan.Id, out var alias) ? alias : fan.Name;
+        return label.Contains("CPU", StringComparison.OrdinalIgnoreCase) ? settings.CpuFanMaxRpm : settings.SystemFanMaxRpm;
+    }
     public static string Number(double? value, string format, string suffix = "") =>
         value is double n && double.IsFinite(n) ? n.ToString(format, CultureInfo.InvariantCulture) + suffix : "--";
     public static string Memory(double? used, double? total) => used is not null && total is > 0
         ? Number(used, "0.0") + "/" + Number(total, "0.0") + "G" : "--";
     public static bool Fresh(DateTimeOffset? timestamp, DateTimeOffset now, double seconds = 5) =>
         timestamp is not null && (now - timestamp.Value).TotalSeconds <= seconds && timestamp <= now.AddSeconds(1);
-    public static List<Metric> Build(SystemFrame? system, SensorFrame? sensors, bool showIntel, int maxFans, DateTimeOffset now)
+    public static List<Metric> Build(SystemFrame? system, SensorFrame? sensors, bool showIntel, int maxFans, DateTimeOffset now, Settings? settings = null)
     {
+        settings ??= new Settings();
         bool fast = Fresh(system?.Timestamp, now), slow = Fresh(sensors?.Timestamp, now);
         var result = new List<Metric> {
             new("cpu-load", "CPU", 4, Number(fast ? system?.CpuLoad : null, "0", "%"), fast ? system?.CpuLoad : null, "Windows CPU utilization"),
@@ -34,7 +52,12 @@ public static class Metrics
             result.Add(new(gpu.Id + "-memory", "VRAM", 12, slow ? Memory(gpu.Used, gpu.Total) : "--", slow && gpu.Total is > 0 ? gpu.Used / gpu.Total * 100 : null, gpu.Name + " · dedicated memory used / total (GiB)"));
         }
         foreach (var fan in sensors?.Fans.Take(maxFans) ?? [])
-            result.Add(new(fan.Id, fan.Name, 6, Number(slow ? fan.Rpm : null, "0"), null, "Read-only fan speed (RPM) · " + fan.Id));
+        {
+            int reference = FanReference(fan, settings);
+            double? level = slow && fan.Rpm is double rpm && double.IsFinite(rpm) && rpm >= 0 && reference > 0 ? Math.Clamp(rpm / reference * 100, 0, 100) : null;
+            result.Add(new(fan.Id, fan.Name, 6, Number(slow ? fan.Rpm : null, "0"), level,
+                "Read-only fan speed (RPM) · color reference: " + reference + " RPM · speed level, not a fan fault · " + fan.Id));
+        }
         result.Add(new("status", "", 9, sensors is null ? "Starting" : !slow ? "Stale" : sensors.Error is not null ? "Partial" : "", null,
             sensors?.Error ?? "Unavailable or stale sensors show --. CPU/RAM polling is independent."));
         return result;
@@ -49,6 +72,9 @@ public class Settings
     public int Monitor { get; set; } = 0;
     public bool ShowIntegratedGpu { get; set; }
     public bool StartAtLogin { get; set; }
+    public int CpuFanMaxRpm { get; set; } = 1800;
+    public int SystemFanMaxRpm { get; set; } = 1300;
+    public Dictionary<string, int> FanMaxRpm { get; set; } = new();
     public Dictionary<string, string> FanLabels { get; set; } = new();
     public static string DirectoryPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RigPulse");
     public static string FilePath => Path.Combine(DirectoryPath, "settings.json");
@@ -62,6 +88,9 @@ public class Settings
         if (!double.IsFinite(Opacity)) Opacity = .82;
         Opacity = Math.Clamp(Opacity, .2, 1); FontSize = Math.Clamp(FontSize, 9, 20);
         MaxFans = Math.Clamp(MaxFans, 0, 12); Monitor = Math.Clamp(Monitor, 0, 32);
+        CpuFanMaxRpm = Math.Clamp(CpuFanMaxRpm, 100, 30000); SystemFanMaxRpm = Math.Clamp(SystemFanMaxRpm, 100, 30000);
+        FanMaxRpm ??= new();
+        FanMaxRpm = FanMaxRpm.Where(p => p.Value is >= 100 and <= 30000).ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
         FanLabels ??= new();
     }
     public void Save()

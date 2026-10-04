@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — 2026-10-04
+
+- Restore fan coloring using each fan's configured RPM reference.
+- Add green, yellow, orange and light-red levels for utilization, temperatures and fan speed; unavailable readings remain gray.
+- Add editable CPU/system references and individual sensor overrides. High fan speed means cooling activity, not a fan fault.
+- Preserve fixed width, independent polling and CPU-stress scheduling.
 ## 1.0.0 — 2026-10-04
 
 - First stable release of the validated 0.1.3 application: independent polling workers, CPU stress scheduling fix, multi-GPU identity and compact fixed-width metrics.
