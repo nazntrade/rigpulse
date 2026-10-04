@@ -25,7 +25,7 @@ The installer also contains the **official signed PawnIO 2.1.0 sensor driver**. 
 
 No fan speeds, voltages, clocks, power limits or overclock settings are changed. FanControl can continue controlling your fans independently.
 
-**Stable width:** values occupy fixed-width cells. `1% → 100%`, `32°C → 100°C` and changing RAM/RPM values do not resize the bar. The layout changes only when settings or available hardware change. A narrow display wraps cells while keeping their widths fixed. Units marked `G` are GiB (1024³ bytes).
+**Stable width:** thin dividers separate CPU, RAM, each GPU and individual fans; values occupy fixed-width cells. `1% → 100%`, `32°C → 100°C` and changing RAM/RPM values do not resize the bar. The layout changes only when settings or available hardware change. A narrow display wraps cells while keeping their widths fixed. Units marked `G` are GiB (1024³ bytes).
 
 ## Hardware and freshness
 

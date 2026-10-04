@@ -26,3 +26,7 @@ dotnet run --project tests/RigPulse.Tests.csproj -c Release
 ```
 
 Layout testing writes a PNG and a JSON width report, then exits. Simulated stall diagnostics deliberately block only the sensor worker; CPU/RAM continues polling. Both tests clean up their owned workers on normal exit.
+
+## 0.1.1 separator update
+
+Visible dividers were added between CPU, RAM, each GPU and individual fan readings. The installed executable was checked on the same machine: six alternating low/high samples stayed at 1164 device-independent pixels; CPU temperature and both NVIDIA GPUs remained available. The updated synthetic screenshot is included in the README.
