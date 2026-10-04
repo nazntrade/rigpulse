@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0 — 2026-10-04
+
+- First stable release of the validated 0.1.3 application: independent polling workers, CPU stress scheduling fix, multi-GPU identity and compact fixed-width metrics.
+- The user confirmed that the complete overlay remains responsive during their full CPU stress test on the validated PC. Hardware support on other systems remains subject to the documented limitations.
+- No polling or layout behavior changes from 0.1.3; existing installation and sign-in settings are retained.
+
 ## 0.1.3 — 2026-10-04
 
 - Place RAM and VRAM values directly after their labels by left-aligning the values inside the existing fixed-width cells. Reserved digit space now follows the value, preserving stable panel width.

@@ -12,7 +12,7 @@ RigPulse grew out of a PowerShell desktop overlay. This version is a compiled Wi
 
 ## Download
 
-Get a Windows x64 installer or portable EXE from [Releases](https://github.com/nazntrade/rigpulse/releases). Early builds are previews. **A build is Authenticode-signed only when the release explicitly says so.** Unsigned review builds are labeled unsigned; a checksum is not an Authenticode signature. Trusted publisher signing needs a code-signing certificate or signing service. A self-signed certificate does not establish publisher trust on other people's PCs.
+Get a Windows x64 installer or portable EXE from [Releases](https://github.com/nazntrade/rigpulse/releases). Version 1.0.0 is the first stable release; earlier 0.1.x releases remain previews. **A build is Authenticode-signed only when the release explicitly says so.** Unsigned review builds are labeled unsigned; a checksum is not an Authenticode signature. Trusted publisher signing needs a code-signing certificate or signing service. A self-signed certificate does not establish publisher trust on other people's PCs.
 
 ## Use
 

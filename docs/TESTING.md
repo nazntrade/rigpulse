@@ -65,3 +65,8 @@ To repeat the WPF test, close the installed overlay first, then run `./tests/Tes
 ## 0.1.3 label spacing
 
 RAM and VRAM values are now left-aligned inside their original fixed-width cells. Six alternating WPF samples remained at 1188 device-independent pixels; the reserved digit space follows the value instead of separating it from its label. CPU temperature, both NVIDIA GPUs and three active fans remained available in the elevated diagnostic check.
+
+
+## 1.0.0 stable release
+
+On 2026-10-04 the user confirmed that the installed 0.1.3 overlay no longer freezes during their full CPU stress test. This is a user-observed result, separate from the bounded scheduling and WPF checks above. Version 1.0.0 retains the same polling and layout behavior; it does not expand the set of physically validated hardware.
