@@ -15,3 +15,19 @@ Check(Metrics.Number(double.NaN, "0") == "--", "Invalid sensor values must be un
 Check(Metrics.Memory(1.2, 15.9) == "1.2/15.9G", "Formatting must not depend on the Windows language.");
 Check(!Metrics.Fresh(now.AddMinutes(1), now), "Future timestamps must not remain fresh forever.");
 Console.WriteLine("PASS: stable layout, multi-GPU identity, independent freshness, invalid values and invariant formatting.");
+
+if (OperatingSystem.IsWindows())
+{
+    using var current = System.Diagnostics.Process.GetCurrentProcess();
+    var original = current.PriorityClass;
+    try
+    {
+        current.PriorityClass = System.Diagnostics.ProcessPriorityClass.BelowNormal;
+        Scheduling.ConfigureCurrentProcess();
+        current.Refresh();
+        Check(current.PriorityClass == System.Diagnostics.ProcessPriorityClass.AboveNormal,
+            "Monitoring must override the BelowNormal priority inherited from Task Scheduler.");
+    }
+    finally { current.PriorityClass = original; }
+}
+Console.WriteLine("PASS: scheduler-inherited BelowNormal is overridden for responsive polling.");

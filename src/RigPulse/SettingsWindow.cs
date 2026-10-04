@@ -13,7 +13,7 @@ public sealed class SettingsWindow : Window
         Result = current; Title = "RigPulse settings"; Width = 440; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize; WindowStartupLocation = WindowStartupLocation.CenterScreen;
         var panel = new StackPanel { Margin = new Thickness(22) }; Content = panel;
         panel.Children.Add(new TextBlock { Text = "RigPulse", FontSize = 24, FontWeight = FontWeights.Bold });
-        panel.Children.Add(new TextBlock { Text = "Read-only hardware monitoring · v0.1.1", Margin = new Thickness(0, 4, 0, 18) });
+        panel.Children.Add(new TextBlock { Text = "Read-only hardware monitoring · v" + typeof(Program).Assembly.GetName().Version?.ToString(3), Margin = new Thickness(0, 4, 0, 18) });
         Slider AddSlider(string label, double minimum, double maximum, double value)
         {
             panel.Children.Add(new TextBlock { Text = label });

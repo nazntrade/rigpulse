@@ -30,3 +30,33 @@ Layout testing writes a PNG and a JSON width report, then exits. Simulated stall
 ## 0.1.1 separator update
 
 Visible dividers were added between CPU, RAM, each GPU and individual fan readings. The installed executable was checked on the same machine: six alternating low/high samples stayed at 1164 device-independent pixels; CPU temperature and both NVIDIA GPUs remained available. The updated synthetic screenshot is included in the README.
+
+## 0.1.2 CPU scheduling regression
+
+The installed scheduled task used priority 7. The live overlay and its two workers were running at Windows base priority 6 (`BelowNormal`), while FanControl ran at base priority 10 (`AboveNormal`).
+
+A bounded integer workload saturated the same logical CPU used by the diagnostic monitor and its children. Comparing the same compiled executables on this machine:
+
+| Check | 0.1.1 | 0.1.2 |
+| --- | --- | --- |
+| Busy CPU occupancy | 98.2% | 90.5% |
+| Maximum gap between CPU/RAM frames | 6.07 seconds | 1.09 seconds |
+| Distinct CPU/RAM frames in eight samples | 7 | 8 |
+| Fresh CPU/RAM samples | Not measured by the old format | 8 / 8 |
+| Main / system / sensor process priorities | Inherited `BelowNormal` | All `AboveNormal` |
+
+This tests competition for a fully occupied logical CPU; it is not a claim of a repeated whole-machine OCCT/AVX thermal test. The earlier 100°C result is why that test is not run unattended. The regression does not change fan settings, clocks or power limits.
+
+Reproduce after a release build on Windows with PowerShell 7:
+
+```powershell
+./tests/Test-CpuScheduling.ps1
+# Optional comparison, if the old portable release was downloaded:
+./tests/Test-CpuScheduling.ps1 -BaselinePath ./artifacts/RigPulse-0.1.1-win-x64.exe
+```
+
+The unit tests also force their own process to `BelowNormal`, apply the monitoring policy, verify `AboveNormal`, and restore the previous priority. Diagnostic reports now include sample capture time and each process's priority; the default remains eight seconds.
+
+The actual WPF overlay was also tested under the same CPU contention: six UI capture samples, maximum interval 0.763 seconds for a 0.750-second timer, and constant width of 1188 device-independent pixels. The new middle dots between GPU temperature and VRAM occupy fixed space. An elevated physical-sensor check read CPU temperature, both distinct NVIDIA GPUs and all three active motherboard fans successfully.
+
+To repeat the WPF test, close the installed overlay first, then run `./tests/Test-CpuScheduling.ps1 -Layout`. It displays synthetic values to exercise the window and writes a PNG and timing report; the default diagnostic test exercises actual CPU/RAM polling.

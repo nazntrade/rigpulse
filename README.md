@@ -25,14 +25,14 @@ The installer also contains the **official signed PawnIO 2.1.0 sensor driver**. 
 
 No fan speeds, voltages, clocks, power limits or overclock settings are changed. FanControl can continue controlling your fans independently.
 
-**Stable width:** thin dividers separate CPU, RAM, each GPU and individual fans; values occupy fixed-width cells. `1% → 100%`, `32°C → 100°C` and changing RAM/RPM values do not resize the bar. The layout changes only when settings or available hardware change. A narrow display wraps cells while keeping their widths fixed. Units marked `G` are GiB (1024³ bytes).
+**Stable width:** thin dividers separate CPU, RAM, each GPU and individual fans; a middle dot separates each GPU temperature from its VRAM reading; values occupy fixed-width cells. `1% → 100%`, `32°C → 100°C` and changing RAM/RPM values do not resize the bar. The layout changes only when settings or available hardware change. A narrow display wraps cells while keeping their widths fixed. Units marked `G` are GiB (1024³ bytes).
 
 ## Hardware and freshness
 
 - CPU utilization uses Windows `GetSystemTimes`; physical RAM uses `GlobalMemoryStatusEx`. CPU utilization can differ from frequency-adjusted “CPU utility” in other monitors.
 - CPU temperatures, AMD/Intel GPU sensors and motherboard fan RPM come from [LibreHardwareMonitor 0.9.6](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/tree/v0.9.6). NVIDIA readings use the driver-supplied NVML API with a separate device UUID and driver index for each GPU. GPU1 corresponds to NVIDIA index 0. Intel graphics are not substituted for a second NVIDIA GPU.
 - NVIDIA VRAM uses NVML's allocated-memory figure, matching `nvidia-smi` units after conversion to GiB. Older drivers that lack the v2 API fall back to the v1 figure, which includes driver-reserved memory. Motherboard fan slots reporting zero at initial discovery are omitted; the selected active slots stay selected even if their RPM later falls to zero. Restart the app after connecting a new fan.
-- Two independent compiled worker processes poll once per second. The UI never waits for sensor reads. A stuck sensor worker cannot freeze CPU/RAM updates or the window.
+- Two independent compiled worker processes poll once per second. The UI never waits for sensor reads. A stuck sensor worker cannot freeze CPU/RAM updates or the window. The overlay and workers set their own `AboveNormal` priority so Task Scheduler's default `BelowNormal` priority cannot starve polling during CPU stress. Only RigPulse processes are affected.
 - Readings older than five seconds show `--` and `Stale`; the last hardware layout remains visible. A worker that produces no readings for twenty seconds is restarted. Missing motherboard sensors depend on hardware support, privileges and Windows driver policy; RigPulse does not bypass that policy.
 - AMD and Intel support depends on LibreHardwareMonitor and has not yet been validated on physical AMD/Intel GPUs. This preview is being tested on a Windows PC with two RTX 5060 Ti cards.
 
@@ -46,7 +46,7 @@ Optional `FanLabels` maps diagnostic sensor IDs to short names, for example `"/l
 .\RigPulse.exe --diagnostics --output "$env:TEMP\rigpulse-diagnostics.json"
 ```
 
-This collects eight seconds of readings without opening the overlay. The report includes GPU/sensor identifiers and hardware names; inspect it before sharing. It contains no API keys or account credentials. Demo mode (`--demo`) displays synthetic values; it does not test sensors.
+This collects eight seconds of readings without opening the overlay. Add `--duration 20` for a longer capture (2–120 seconds). Each sample includes the capture time and the overlay/worker process priorities, making scheduler delays distinguishable from sensor failures. The report includes GPU/sensor identifiers and hardware names; inspect it before sharing. It contains no API keys or account credentials. Demo mode (`--demo`) displays synthetic values; it does not test sensors.
 
 ## Build from source
 

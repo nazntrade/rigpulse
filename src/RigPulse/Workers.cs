@@ -84,6 +84,7 @@ public sealed class WorkerHost<T> : IDisposable where T : class
     private T? latest;
     private int disposed;
     public T? Latest => Volatile.Read(ref latest);
+    public object? Info => process is { HasExited: false } worker ? new { id = worker.Id, priority = worker.PriorityClass.ToString() } : null;
     public WorkerHost(string mode) { this.mode = mode; Start(); }
     private void Start()
     {
@@ -95,7 +96,9 @@ public sealed class WorkerHost<T> : IDisposable where T : class
             try { var frame = JsonSerializer.Deserialize<T>(e.Data); if (frame is not null) { Volatile.Write(ref latest, frame); Interlocked.Exchange(ref received, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()); } } catch { }
         };
         process.ErrorDataReceived += (_, _) => { };
-        process.Start(); process.BeginOutputReadLine(); process.BeginErrorReadLine();
+        process.Start();
+        try { Scheduling.Configure(process); } catch (Exception e) { Program.Log(e); }
+        process.BeginOutputReadLine(); process.BeginErrorReadLine();
     }
     public void Check()
     {

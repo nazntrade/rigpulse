@@ -76,6 +76,7 @@ public sealed class OverlayWindow : Window
         {
             topology = key; strip.Children.Clear(); values.Clear();
             bool HasSeparator(Metric metric) => metric.Id == "ram" || metric.Id.EndsWith("-load", StringComparison.Ordinal) && metric.Id != "cpu-load" || selectedFans?.Contains(metric.Id) == true;
+            bool HasMetricDot(Metric metric) => metric.Id.EndsWith("-memory", StringComparison.Ordinal);
             foreach (var m in metrics)
             {
                 var cell = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 5, 0) };
@@ -83,12 +84,16 @@ public sealed class OverlayWindow : Window
                     Width = 1, Height = settings.FontSize + 2, Background = Brushes.Gray,
                     Margin = new Thickness(4, 0, 9, 0), VerticalAlignment = VerticalAlignment.Center
                 });
+                if (HasMetricDot(m)) cell.Children.Add(new TextBlock {
+                    Text = "·", Foreground = Brushes.Gray, FontFamily = new FontFamily("Consolas"),
+                    FontSize = settings.FontSize, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 5, 0)
+                });
                 if (m.Label.Length > 0) cell.Children.Add(new TextBlock { Text = m.Label + " ", Foreground = Brushes.LightGray, FontFamily = new FontFamily("Consolas"), FontSize = settings.FontSize, FontWeight = FontWeights.Bold });
                 var value = new TextBlock { Width = Math.Ceiling(m.Characters * settings.FontSize * .56), TextAlignment = TextAlignment.Right,
                     FontFamily = new FontFamily("Consolas"), FontSize = settings.FontSize, FontWeight = FontWeights.Bold, TextTrimming = TextTrimming.CharacterEllipsis };
                 values[m.Id] = value; cell.Children.Add(value); strip.Children.Add(cell);
             }
-            double total = metrics.Sum(m => (m.Characters + (m.Label.Length > 0 ? m.Label.Length + 1 : 0)) * settings.FontSize * .56 + 5 + (HasSeparator(m) ? 14 : 0)) + 20;
+            double total = metrics.Sum(m => (m.Characters + (m.Label.Length > 0 ? m.Label.Length + 1 : 0)) * settings.FontSize * .56 + 5 + (HasSeparator(m) ? 14 : 0) + (HasMetricDot(m) ? settings.FontSize * .56 + 5 : 0)) + 20;
             var screen = Forms.Screen.AllScreens[Math.Min(settings.Monitor, Forms.Screen.AllScreens.Length - 1)];
             double scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
             surface.Width = Math.Min(Math.Ceiling(total), screen.WorkingArea.Width / scale - 24);
