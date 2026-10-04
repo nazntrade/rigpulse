@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+artifacts/
+tools/
+*.pfx
+*.p12
+*.user
+*.log
+.vs/
+private/
+artifacts-*.json
+docs/*.png.json

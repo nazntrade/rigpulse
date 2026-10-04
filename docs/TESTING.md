@@ -1,0 +1,28 @@
+# Preview validation
+
+Validated on 2026-10-04 using Windows x64, Intel Core i7-12700K, an MSI B760 DDR4 motherboard and two NVIDIA GeForce RTX 5060 Ti 16 GB cards. Reports containing machine-specific hardware identifiers are kept locally and are not committed.
+
+| Check | Result |
+| --- | --- |
+| Release compile | Passed; zero warnings / errors. |
+| Numeric layout / formatting tests | Passed: invariant formatting, invalid readings, future timestamps and unchanged fixed-cell widths. |
+| Actual WPF width | Six alternating low/high reading samples stayed at 1080 device-independent pixels at 150% display scaling. The README image uses synthetic demo values. |
+| GPU identity | Two separate NVIDIA UUIDs / driver indices detected; Intel graphics excluded by default. |
+| NVIDIA VRAM | Allocated memory sampled through NVML v2 separately per card; the second card's zero allocation matched NVIDIA's tool instead of duplicating the first card's memory. Small sampling-time differences on an active desktop are expected. |
+| CPU and motherboard sensors | CPU temperature, CPU fan RPM and both connected system fans read successfully when elevated with an existing official PawnIO installation. |
+| Unprivileged run | CPU/RAM and NVIDIA readings worked; CPU temperature / motherboard sensors were unavailable until elevation. |
+| Blocked hardware worker | Deliberately blocked sensor worker for an eight-second diagnostic run; eight distinct CPU/RAM frames continued to arrive. |
+| Install / launch / uninstall | Silent per-user install into an isolated test directory passed. Installed EXE matched the published hash; its demo retained stable width. Silent uninstall removed the app and preserved the shared sensor driver. |
+
+The included tests do not claim to validate every board, GPU vendor, monitor arrangement or Windows security configuration. A simultaneous full CPU stress test was not repeated after the earlier machine reached 100°C. AMD / Intel physical GPU telemetry, a clean machine's first PawnIO installation and trusted signing require separate validation.
+
+## Reproduce
+
+```powershell
+dotnet run --project tests/RigPulse.Tests.csproj -c Release
+./scripts/build.ps1
+./artifacts/RigPulse-0.1.0-win-x64.exe --layout-test --output "$env:TEMP/rigpulse-layout.png"
+./artifacts/RigPulse-0.1.0-win-x64.exe --diagnostics --simulate-sensor-hang --output "$env:TEMP/rigpulse-stall.json"
+```
+
+Layout testing writes a PNG and a JSON width report, then exits. Simulated stall diagnostics deliberately block only the sensor worker; CPU/RAM continues polling. Both tests clean up their owned workers on normal exit.

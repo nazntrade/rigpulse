@@ -1,0 +1,31 @@
+name: Windows build
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Restore locked dependencies
+        run: dotnet restore src/RigPulse/RigPulse.csproj --locked-mode
+      - name: Install installer compiler
+        run: choco install innosetup --no-progress -y
+      - name: Test and build unsigned review artifacts
+        shell: pwsh
+        run: ./scripts/build.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RigPulse-unsigned-review-build
+          path: |
+            artifacts/*.exe
+            artifacts/SHA256SUMS.txt
+            artifacts/build-info.json
+            artifacts/RigPulse-ThirdPartySources.zip
