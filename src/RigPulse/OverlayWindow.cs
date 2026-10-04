@@ -89,7 +89,7 @@ public sealed class OverlayWindow : Window
                     FontSize = settings.FontSize, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 5, 0)
                 });
                 if (m.Label.Length > 0) cell.Children.Add(new TextBlock { Text = m.Label + " ", Foreground = Brushes.LightGray, FontFamily = new FontFamily("Consolas"), FontSize = settings.FontSize, FontWeight = FontWeights.Bold });
-                var value = new TextBlock { Width = Math.Ceiling(m.Characters * settings.FontSize * .56), TextAlignment = TextAlignment.Right,
+                var value = new TextBlock { Width = Math.Ceiling(m.Characters * settings.FontSize * .56), TextAlignment = m.Id == "ram" || m.Id.EndsWith("-memory", StringComparison.Ordinal) ? TextAlignment.Left : TextAlignment.Right,
                     FontFamily = new FontFamily("Consolas"), FontSize = settings.FontSize, FontWeight = FontWeights.Bold, TextTrimming = TextTrimming.CharacterEllipsis };
                 values[m.Id] = value; cell.Children.Add(value); strip.Children.Add(cell);
             }

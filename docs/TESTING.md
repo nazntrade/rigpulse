@@ -60,3 +60,8 @@ The unit tests also force their own process to `BelowNormal`, apply the monitori
 The actual WPF overlay was also tested under the same CPU contention: six UI capture samples, maximum interval 0.763 seconds for a 0.750-second timer, and constant width of 1188 device-independent pixels. The new middle dots between GPU temperature and VRAM occupy fixed space. An elevated physical-sensor check read CPU temperature, both distinct NVIDIA GPUs and all three active motherboard fans successfully.
 
 To repeat the WPF test, close the installed overlay first, then run `./tests/Test-CpuScheduling.ps1 -Layout`. It displays synthetic values to exercise the window and writes a PNG and timing report; the default diagnostic test exercises actual CPU/RAM polling.
+
+
+## 0.1.3 label spacing
+
+RAM and VRAM values are now left-aligned inside their original fixed-width cells. Six alternating WPF samples remained at 1188 device-independent pixels; the reserved digit space follows the value instead of separating it from its label. CPU temperature, both NVIDIA GPUs and three active fans remained available in the elevated diagnostic check.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 — 2026-10-04
+
+- Place RAM and VRAM values directly after their labels by left-aligning the values inside the existing fixed-width cells. Reserved digit space now follows the value, preserving stable panel width.
+
 ## 0.1.2 — 2026-10-04
 
 - Fix monitoring starvation during CPU stress: the overlay and both polling workers explicitly select `AboveNormal` instead of inheriting Task Scheduler's `BelowNormal` priority. Normal launch, scheduled launch and restarted workers use the same policy.
