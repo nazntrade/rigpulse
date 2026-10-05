@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4 — 2026-10-05
+
+- Hide the empty sensor-status cell so there is no unused gap before component power. Numeric cell widths remain fixed; an explicit Starting/Stale/Partial status can still appear when needed.
+
 ## 1.0.3 — 2026-10-05
 
 - Append CPU package power, individual discrete GPU watts and their component sum to the end of the overlay.

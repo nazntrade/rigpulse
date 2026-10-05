@@ -79,6 +79,7 @@ public sealed class OverlayWindow : Window
         var metrics = Metrics.Build(fast, slow, settings.ShowIntegratedGpu, settings.MaxFans, now, settings);
         if (demo) metrics = metrics.Select(m => m.Id == "status" ? m with { Text = "Demo" } : m).ToList();
         metrics = metrics.Select(m => settings.FanLabels.TryGetValue(m.Id, out var label) ? m with { Label = label.Length > 18 ? label[..18] : label } : m with { Label = m.Label.Replace("System Fan", "SYS Fan", StringComparison.Ordinal) }).ToList();
+        metrics = metrics.Where(m => m.Id != "status" || !string.IsNullOrEmpty(m.Text)).ToList();
         string key = string.Join("|", metrics.Select(m => m.Id + ":" + m.Label));
         if (key != topology)
         {
