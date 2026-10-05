@@ -1,5 +1,7 @@
 # RigPulse
 
+![RigPulse icon](src/RigPulse/Assets/rigpulse.png)
+
 A compact, read-only Windows hardware monitor with multi-GPU support.
 
 CPU load and temperature · physical RAM · each GPU's load, temperature and dedicated VRAM · motherboard fan RPM.

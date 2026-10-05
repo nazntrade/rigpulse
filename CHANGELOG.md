@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2 — 2026-10-05
+
+- Add the original green pulse icon to the tray, application EXE, installer and application shortcuts. Include vector source and reproducible multi-resolution icon generation.
+
 ## 1.0.1 — 2026-10-04
 
 - Restore fan coloring using each fan's configured RPM reference.

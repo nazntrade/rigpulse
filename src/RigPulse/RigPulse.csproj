@@ -6,11 +6,11 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <AssemblyName>RigPulse</AssemblyName>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RuntimeFrameworkVersion>10.0.11</RuntimeFrameworkVersion>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/rigpulse.ico</ApplicationIcon><ApplicationManifest>app.manifest</ApplicationManifest>
     <StartupObject>RigPulse.Program</StartupObject>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
@@ -18,7 +18,7 @@
   </PropertyGroup>
   <ItemGroup><PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" /></ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="../../LICENSE" LogicalName="RigPulse.LICENSE" />
+    <EmbeddedResource Include="Assets/rigpulse.ico" LogicalName="RigPulse.Icon" /><EmbeddedResource Include="../../LICENSE" LogicalName="RigPulse.LICENSE" />
     <EmbeddedResource Include="../../THIRD-PARTY-NOTICES.md" LogicalName="RigPulse.NOTICES" />
     <EmbeddedResource Include="../../licenses/*" LogicalName="RigPulse.licenses.%(Filename)%(Extension)" />
   </ItemGroup>

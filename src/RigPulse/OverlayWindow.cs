@@ -17,6 +17,7 @@ public sealed class OverlayWindow : Window
     private readonly Dictionary<string, TextBlock> values = new();
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly Forms.NotifyIcon tray;
+    private readonly System.Drawing.Icon trayIcon;
     private readonly WorkerHost<SystemFrame>? system;
     private readonly WorkerHost<SensorFrame>? sensors;
     private readonly bool demo;
@@ -50,14 +51,16 @@ public sealed class OverlayWindow : Window
             catch (Exception e) { Program.Log(e); }
         });
         menu.Items.Add("Exit", null, (_, _) => Dispatcher.Invoke(Close));
-        tray = new Forms.NotifyIcon { Text = "RigPulse · hardware monitor", Icon = System.Drawing.SystemIcons.Application, ContextMenuStrip = menu, Visible = true };
+        using (var iconStream = typeof(Program).Assembly.GetManifestResourceStream("RigPulse.Icon")!)
+        using (var embeddedIcon = new System.Drawing.Icon(iconStream)) trayIcon = (System.Drawing.Icon)embeddedIcon.Clone();
+        tray = new Forms.NotifyIcon { Text = "RigPulse · hardware monitor", Icon = trayIcon, ContextMenuStrip = menu, Visible = true };
         tray.DoubleClick += (_, _) => Dispatcher.Invoke(OpenSettings);
         MouseRightButtonUp += (_, _) => menu.Show(Forms.Cursor.Position);
         SourceInitialized += (_, _) => { var hwnd = new WindowInteropHelper(this).Handle; SetWindowLong(hwnd, -20, GetWindowLong(hwnd, -20) | 0x08000000 | 0x80); };
         Loaded += (_, _) => { Refresh(); timer.Start(); };
         SizeChanged += (_, _) => Position();
         timer.Tick += (_, _) => Refresh();
-        Closed += (_, _) => { timer.Stop(); tray.Dispose(); system?.Dispose(); sensors?.Dispose(); };
+        Closed += (_, _) => { timer.Stop(); tray.Dispose(); trayIcon.Dispose(); system?.Dispose(); sensors?.Dispose(); };
     }
     private void Refresh()
     {

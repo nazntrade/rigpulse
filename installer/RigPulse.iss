@@ -18,6 +18,7 @@ OutputBaseFilename=RigPulse-Setup-{#AppVersion}-win-x64
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\src\RigPulse\Assets\rigpulse.ico
 LicenseFile=..\LICENSE
 CloseApplications=yes
 RestartApplications=no
