@@ -29,6 +29,8 @@ public sealed class NvidiaSensors : IDisposable
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] private static extern int nvmlDeviceGetTemperature(IntPtr device, uint sensor, out uint temperature);
     [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] private static extern int nvmlDeviceGetUtilizationRates(IntPtr device, out Utilization utilization);
+    [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] private static extern int nvmlDeviceGetPowerUsage(IntPtr device, out uint milliwatts);
     private readonly bool initialized;
     public bool Available => initialized;
     public NvidiaSensors() { try { initialized = nvmlInit_v2() == 0; } catch (DllNotFoundException) { } catch (EntryPointNotFoundException) { } }
@@ -44,13 +46,15 @@ public sealed class NvidiaSensors : IDisposable
             if (nvmlDeviceGetUUID(device, uuid, 96) != 0) continue;
             double? temperature = nvmlDeviceGetTemperature(device, 0, out var temp) == 0 ? temp : null;
             double? load = nvmlDeviceGetUtilizationRates(device, out var usage) == 0 ? usage.Gpu : null;
+            double? power = null;
+            try { if (nvmlDeviceGetPowerUsage(device, out var milliwatts) == 0) power = milliwatts / 1000d; } catch (EntryPointNotFoundException) { }
             double? used = null, total = null;
             var mem2 = new MemoryInfoV2 { Version = (uint)Marshal.SizeOf<MemoryInfoV2>() | (2u << 24) };
             try { if (nvmlDeviceGetMemoryInfo_v2(device, ref mem2) == 0) { used = mem2.Used / 1073741824d; total = mem2.Total / 1073741824d; } }
             catch (EntryPointNotFoundException) { }
             if (total is null && nvmlDeviceGetMemoryInfo(device, out var mem) == 0) { used = mem.Used / 1073741824d; total = mem.Total / 1073741824d; }
             result.Add(new("/gpu-nvidia/" + uuid, name.ToString(), "GpuNvidia", load, temperature,
-                used, total, (int)i));
+                used, total, (int)i, power));
         }
         return result.ToArray();
     }

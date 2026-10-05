@@ -6,7 +6,7 @@ var sensor = new SensorFrame(now, 32, [gpu, gpu with { Id = "/gpu-nvidia/0" }, g
 var low = Metrics.Build(new(now, 1, 9.8, 63.7), sensor, false, 3, now);
 var high = Metrics.Build(new(now, 100, 63.7, 63.7), sensor with { CpuTemperature = 100 }, false, 3, now);
 Check(low.Select(m => (m.Id, m.Characters)).SequenceEqual(high.Select(m => (m.Id, m.Characters))), "Numeric changes must not change cell widths or topology.");
-Check(low.Count(m => m.Label.StartsWith("GPU")) == 2, "Both discrete GPUs must be displayed, without Intel substitution.");
+Check(low.Count(m => m.Id.EndsWith("-load") && m.Label.StartsWith("GPU")) == 2, "Both discrete GPUs must be displayed, without Intel substitution.");
 var stale = Metrics.Build(new(now, 100, 10, 64), sensor with { Timestamp = now.AddSeconds(-10) }, false, 3, now);
 Check(stale.Single(m => m.Id == "cpu-load").Text == "100%", "CPU must remain live when hardware sensors stall.");
 Check(stale.Single(m => m.Id == "cpu-temp").Text == "--", "Stale values must not masquerade as current readings.");
@@ -38,7 +38,7 @@ var peakMetrics = Metrics.Build(new(now, 100, 62, 64), peakSensors, false, 3, no
 foreach (var id in new[] { "cpu-load", "cpu-temp", "ram", "cpu-fan", "case-back", "case-front" })
     Check(Metrics.Tone(peakMetrics.Single(m => m.Id == id)) == MetricTone.Critical, "Screenshot peak must use light red: " + id);
 var gpuPeaks = Metrics.Build(new(now, 5, 10, 64), sensor with { Gpus = [gpu with { Load = 100, Temperature = 86, Used = 15.2 }] }, false, 3, now);
-foreach (var metric in gpuPeaks.Where(m => m.Id.StartsWith(gpu.Id)))
+foreach (var metric in gpuPeaks.Where(m => m.Id.StartsWith(gpu.Id) && !m.Id.EndsWith("-power")))
     Check(Metrics.Tone(metric) == MetricTone.Critical, "GPU load, temperature and memory need independent critical colors.");
 Check(Metrics.Tone(low.Single(m => m.Id == "cpu-temp")) == MetricTone.Low, "Idle temperatures must be green.");
 Check(Metrics.Tone(new("cpu-temp", "", 5, "70°C", 70)) == MetricTone.Medium, "Warm CPU must be yellow.");
@@ -56,3 +56,13 @@ Check(restoredSettings.FanMaxRpm["case-back"] == 2500 && restoredSettings.CpuFan
 references.CpuFanMaxRpm = 0; references.SystemFanMaxRpm = int.MaxValue; references.FanMaxRpm["bad"] = 0; references.Normalize();
 Check(references.CpuFanMaxRpm > 0 && references.SystemFanMaxRpm <= 30000 && !references.FanMaxRpm.ContainsKey("bad"), "Invalid references must not divide by zero or remain enabled.");
 Console.WriteLine("PASS: four colors, screenshot fan peaks, distinct temperature thresholds, stale/invalid readings and independent fan references.");
+
+var powerSensors = sensor with { CpuPowerWatts = 35, Gpus = [gpu with { PowerWatts = 120, DriverIndex = 1 }, gpu with { Id = "/gpu-nvidia/0", PowerWatts = 110, DriverIndex = 0 }, gpu with { Id = "/gpu-intel/0", Type = "GpuIntel", PowerWatts = 20 }] };
+var powerMetrics = Metrics.Build(null, powerSensors, false, 3, now);
+Check(powerMetrics.Last().Id == "power-sum" && powerMetrics.Last().Text == "265W", "Power belongs at the end and excludes integrated GPU double counting.");
+Check(Metrics.Build(null, powerSensors, false, 3, now, new Settings { ShowComponentPower = false }).All(m => !m.Id.Contains("power")), "Power toggle must remove the entire block.");
+Check(Metrics.Build(null, powerSensors with { CpuPowerWatts = null }, false, 3, now).Last().Text == "--", "Incomplete power must not appear to be a complete sum.");
+Check(Metrics.Build(null, powerSensors with { Timestamp = now.AddSeconds(-10) }, false, 3, now).Last().Text == "--", "Stale power must be unavailable.");
+Check(Metrics.Build(null, powerSensors with { CpuPowerWatts = double.NaN }, false, 3, now).Last().Text == "--", "Invalid power must be unavailable.");
+Check(System.Text.Json.JsonSerializer.Deserialize<Settings>(System.Text.Json.JsonSerializer.Serialize(new Settings { ShowComponentPower = false }))!.ShowComponentPower == false, "Power setting must persist.");
+Console.WriteLine("PASS: component power ordering, sum, integrated exclusion, toggle, missing and stale sensors.");

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.3 — 2026-10-05
+
+- Append CPU package power, individual discrete GPU watts and their component sum to the end of the overlay.
+- Add a persistent Settings checkbox to enable or disable the entire power block.
+- Preserve independent polling and fixed numeric widths; missing or stale power is unavailable rather than zero.
+
 ## 1.0.2 — 2026-10-05
 
 - Add the original green pulse icon to the tray, application EXE, installer and application shortcuts. Include vector source and reproducible multi-resolution icon generation.

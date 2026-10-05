@@ -78,3 +78,9 @@ On 2026-10-04 the user confirmed that the installed 0.1.3 overlay no longer free
 - Normal and synthetic peak WPF captures retain 1188 DIP width across all six samples at 150% DPI.
 - Elevated diagnostics read CPU temperature, both NVIDIA cards and three active fans.
 - No new hot CPU stress test was run for this display-only change; validated polling and scheduling remain unchanged.
+
+## 1.0.3 power validation
+
+- Tests cover ordering, sums, integrated-GPU exclusion, missing/invalid/stale inputs and persistent display toggle.
+- Physical idle diagnostics read CPU package 9.45 W and separate NVIDIA cards 8.80 W / 6.07 W; no stress test required.
+- WPF capture width remains 1593 DIP across six alternating low/high readings at 150% DPI.

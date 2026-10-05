@@ -4,9 +4,9 @@ using System.Text.Json;
 namespace RigPulse;
 
 public record SystemFrame(DateTimeOffset Timestamp, double? CpuLoad, double MemoryUsed, double MemoryTotal);
-public record GpuFrame(string Id, string Name, string Type, double? Load, double? Temperature, double? Used, double? Total, int? DriverIndex = null);
+public record GpuFrame(string Id, string Name, string Type, double? Load, double? Temperature, double? Used, double? Total, int? DriverIndex = null, double? PowerWatts = null);
 public record FanFrame(string Id, string Name, double? Rpm);
-public record SensorFrame(DateTimeOffset Timestamp, double? CpuTemperature, GpuFrame[] Gpus, FanFrame[] Fans, string? Error = null);
+public record SensorFrame(DateTimeOffset Timestamp, double? CpuTemperature, GpuFrame[] Gpus, FanFrame[] Fans, string? Error = null, double? CpuPowerWatts = null);
 public record Metric(string Id, string Label, int Characters, string Text, double? Level = null, string? Tooltip = null);
 
 public enum MetricTone { Unavailable, Low, Medium, High, Critical }
@@ -60,6 +60,21 @@ public static class Metrics
         }
         result.Add(new("status", "", 9, sensors is null ? "Starting" : !slow ? "Stale" : sensors.Error is not null ? "Partial" : "", null,
             sensors?.Error ?? "Unavailable or stale sensors show --. CPU/RAM polling is independent."));
+        if (settings.ShowComponentPower)
+        {
+            double? Valid(double? value) => slow && value is double v && double.IsFinite(v) && v >= 0 ? v : null;
+            double? cpuWatts = Valid(sensors?.CpuPowerWatts);
+            var powers = new List<double?> { cpuWatts };
+            result.Add(new("power-cpu", "PWR CPU", 5, Number(cpuWatts, "0", "W"), cpuWatts is null ? null : 0, "CPU package power; includes integrated graphics when part of the package."));
+            int powerIndex = 0;
+            foreach (var gpu in (sensors?.Gpus ?? []).Where(g => g.Type != "GpuIntel").OrderBy(g => g.DriverIndex ?? int.MaxValue).ThenBy(g => g.Id, StringComparer.Ordinal))
+            {
+                var watts = Valid(gpu.PowerWatts); powers.Add(watts);
+                result.Add(new(gpu.Id + "-power", "GPU" + ++powerIndex, 5, Number(watts, "0", "W"), watts is null ? null : 0, gpu.Name + " · device power"));
+            }
+            double? total = powers.All(p => p is not null) ? powers.Sum(p => p!.Value) : null;
+            result.Add(new("power-sum", "Σ CPU+GPU", 6, Number(total, "0", "W"), total is null ? null : 0, "Sum of CPU package and discrete GPU power, not whole-PC wall power. Excludes PSU losses, motherboard, drives and fans. Missing components make the sum unavailable."));
+        }
         return result;
     }
 }
@@ -70,6 +85,7 @@ public class Settings
     public int FontSize { get; set; } = 12;
     public int MaxFans { get; set; } = 3;
     public int Monitor { get; set; } = 0;
+    public bool ShowComponentPower { get; set; } = true;
     public bool ShowIntegratedGpu { get; set; }
     public bool StartAtLogin { get; set; }
     public int CpuFanMaxRpm { get; set; } = 1800;

@@ -29,6 +29,10 @@ No fan speeds, voltages, clocks, power limits or overclock settings are changed.
 
 **Stable width:** thin dividers separate CPU, RAM, each GPU and individual fans; a middle dot separates each GPU temperature from its VRAM reading; values occupy fixed-width cells. `1% → 100%`, `32°C → 100°C` and changing RAM/RPM values do not resize the bar. The layout changes only when settings or available hardware change. A narrow display wraps cells while keeping their widths fixed. Units marked `G` are GiB (1024³ bytes).
 
+## Component power
+
+Enable or disable **Show component power (CPU + discrete GPUs)** in Settings. The final block shows CPU package watts, each discrete GPU and their sum. CPU package power comes from LibreHardwareMonitor; NVIDIA GPU power comes from NVML (milliwatts converted to watts). Integrated GPU power is excluded from the sum because it is already part of the CPU package. This is not whole-PC wall consumption: motherboard, drives, fans and PSU losses are excluded. Missing or stale components show -- and make the sum unavailable. Watts are neutral green, without invented safety thresholds.
+
 ## Reading colors
 
 Green → yellow → orange → light red indicates increasing temperature, utilization or fan speed. Missing, invalid and stale readings are gray.

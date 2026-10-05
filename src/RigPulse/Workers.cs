@@ -61,16 +61,17 @@ public static class Workers
                 .Where(s => s.SensorType == SensorType.Temperature && Finite(s.Value) is not null).ToArray();
             double? cpuTemp = cpu.FirstOrDefault(s => s.Name.Contains("Package"))?.Value ??
                 (cpu.Length > 0 ? cpu.Max(s => (double?)s.Value) : null);
+            double? cpuPower = hardware.Where(h => h.HardwareType == HardwareType.Cpu).Select(h => Pick(h, SensorType.Power, "CPU Package", "Package", "CPU Total" )).FirstOrDefault(p => p is >= 0);
             var gpuFrames = hardware.Where(h => h.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd or HardwareType.GpuIntel)
                 .Select(h => new GpuFrame(h.Identifier.ToString(), h.Name, h.HardwareType.ToString(),
                     Pick(h, SensorType.Load, "GPU Core", "GPU D3D 3D", "GPU"), Pick(h, SensorType.Temperature, "GPU Core", "GPU"),
-                    h.HardwareType == HardwareType.GpuNvidia ? Memory(h, "D3D Dedicated Memory Used") : Memory(h, "GPU Memory Used"), Memory(h, "GPU Memory Total"))).ToArray();
+                    h.HardwareType == HardwareType.GpuNvidia ? Memory(h, "D3D Dedicated Memory Used") : Memory(h, "GPU Memory Used"), Memory(h, "GPU Memory Total"), PowerWatts: Pick(h, SensorType.Power, "GPU Package", "GPU Total", "GPU Power"))).ToArray();
             var nativeNvidia = nvidia.Read();
             var gpus = nativeNvidia.Length > 0 ? gpuFrames.Where(g => g.Type != "GpuNvidia").Concat(nativeNvidia).ToArray() : gpuFrames;
             var fans = hardware.Where(h => !h.HardwareType.ToString().StartsWith("Gpu", StringComparison.Ordinal))
                 .SelectMany(h => h.Sensors.Where(s => s.SensorType == SensorType.Fan)
                     .Select(s => new FanFrame(s.Identifier.ToString(), s.Name, Finite(s.Value)))).OrderBy(s => s.Id, StringComparer.Ordinal).ToArray();
-            Console.WriteLine(JsonSerializer.Serialize(new SensorFrame(DateTimeOffset.UtcNow, cpuTemp, gpus, fans, errors.Count > 0 ? string.Join("; ", errors.Distinct()) : null)));
+            Console.WriteLine(JsonSerializer.Serialize(new SensorFrame(DateTimeOffset.UtcNow, cpuTemp, gpus, fans, errors.Count > 0 ? string.Join("; ", errors.Distinct()) : null, cpuPower)));
             Thread.Sleep(1000);
         } } finally { computer.Close(); }
     }
