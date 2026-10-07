@@ -33,6 +33,7 @@ public sealed class OverlayWindow : Window
     private DesktopDock? dock;
     private bool dockDirty = true, positioning, positionQueued, closing;
     private double compactWidth;
+    private DateTime retryPositionAfter;
     [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr window, int index);
     [DllImport("user32.dll")] private static extern int SetWindowLong(IntPtr window, int index, int value);
     public OverlayWindow(bool demo, bool peakDemo = false)
@@ -110,7 +111,7 @@ public sealed class OverlayWindow : Window
         double requiredWidth = metrics.Sum(m => Math.Ceiling(m.Characters * settings.FontSize * .56) +
             (m.Label.Length > 0 ? TextWidth(m.Label + " ") : 0) + 5 + (HasSeparator(m) ? 14 : 0) +
             (HasMetricDot(m) ? TextWidth("·") + 5 : 0));
-        double availableWidth = layoutScreen.WorkingArea.Width / layoutDpi.DpiScaleX - (settings.DockAboveTaskbar ? 16 : 44);
+        double availableWidth = DesktopDock.WorkArea(DesktopDock.CurrentBounds(new DesktopRect { Left = layoutScreen.Bounds.Left, Top = layoutScreen.Bounds.Top, Right = layoutScreen.Bounds.Right, Bottom = layoutScreen.Bounds.Bottom })).Width / layoutDpi.DpiScaleX - (settings.DockAboveTaskbar ? 16 : 44);
         // Decide from fixed cell widths and the display, never from changing readings
         // or the already-collapsed panel width. A wider display restores details.
         metrics = Metrics.FitPowerBlock(metrics, requiredWidth, availableWidth);
@@ -155,10 +156,11 @@ public sealed class OverlayWindow : Window
     {
         if (closing || positioning) return;
         var screen = Forms.Screen.AllScreens[Math.Min(settings.Monitor, Forms.Screen.AllScreens.Length - 1)];
-        var bounds = new DesktopRect { Left = screen.Bounds.Left, Top = screen.Bounds.Top, Right = screen.Bounds.Right, Bottom = screen.Bounds.Bottom };
+        var bounds = DesktopDock.CurrentBounds(new DesktopRect { Left = screen.Bounds.Left, Top = screen.Bounds.Top, Right = screen.Bounds.Right, Bottom = screen.Bounds.Bottom });
         var dpi = VisualTreeHelper.GetDpi(this);
         if (settings.DockAboveTaskbar && dock is not null)
         {
+            if (DateTime.UtcNow < retryPositionAfter) return;
             if (!dockDirty && dock.Registered) return;
             positioning = true;
             try
@@ -178,8 +180,10 @@ public sealed class OverlayWindow : Window
             }
             catch (Exception error)
             {
-                dock.Dispose(); settings.DockAboveTaskbar = false; Program.Log(error);
-                Dispatcher.BeginInvoke(() => { Position(); System.Windows.MessageBox.Show(error.Message, "Could not dock RigPulse"); });
+                // Explorer can briefly return inverted rectangles while RDP changes
+                // resolution/DPI. Release that reservation and retry on the next tick.
+                retryPositionAfter = DateTime.UtcNow.AddMilliseconds(750);
+                dock.Dispose(); dockDirty = true; Program.Log(error);
             }
             finally { positioning = false; }
             return;
@@ -202,6 +206,7 @@ public sealed class OverlayWindow : Window
     private IntPtr WindowMessage(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         dock?.HandleMessage(message, wParam, lParam);
+        if (message is 0x7E or 0x2E0) retryPositionAfter = DateTime.UtcNow.AddMilliseconds(300);
         if (message is 0x1A or 0x7E or 0x2E0) QueuePosition();
         return IntPtr.Zero;
     }

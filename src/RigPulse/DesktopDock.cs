@@ -11,6 +11,8 @@ public struct DesktopRect : IEquatable<DesktopRect>
     public readonly bool Equals(DesktopRect other) => Left == other.Left && Top == other.Top && Right == other.Right && Bottom == other.Bottom;
     public override readonly bool Equals(object? value) => value is DesktopRect other && Equals(other);
     public override readonly int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
+    public readonly bool IsValidDock(DesktopRect bounds) => Width > 0 && Height > 0 &&
+        Left >= bounds.Left && Right <= bounds.Right && Top >= bounds.Top && Bottom <= bounds.Bottom;
 }
 
 // All shell rectangles are physical pixels, including on mixed-DPI displays.
@@ -56,6 +58,14 @@ public sealed class DesktopDock : IDisposable
         if (!GetMonitorInfo(monitor, ref info)) throw new InvalidOperationException("Windows could not read the display work area.");
         return info.WorkArea;
     }
+    public static DesktopRect CurrentBounds(DesktopRect previous)
+    {
+        var info = new MonitorInfo { Size = (uint)Marshal.SizeOf<MonitorInfo>() };
+        var monitor = MonitorFromPoint(new Point { X = previous.Left + previous.Width / 2, Y = previous.Top + previous.Height / 2 }, 2);
+        if (!GetMonitorInfo(monitor, ref info) || info.Bounds.Width <= 0 || info.Bounds.Height <= 0)
+            throw new InvalidOperationException("The display configuration is still changing.");
+        return info.Bounds;
+    }
     public static DesktopRect WindowRect(IntPtr window)
     {
         if (!GetWindowRect(window, out var rect)) throw new InvalidOperationException("Windows could not read the panel position.");
@@ -63,7 +73,8 @@ public sealed class DesktopDock : IDisposable
     }
     public DesktopRect Reserve(DesktopRect bounds, int height)
     {
-        height = Math.Max(1, height);
+        if (bounds.Width <= 0 || bounds.Height <= 0 || height <= 0 || height > bounds.Height)
+            throw new InvalidOperationException("The display configuration is still changing.");
         var data = Data();
         placing = true;
         try
@@ -76,9 +87,11 @@ public sealed class DesktopDock : IDisposable
             data.Rect = bounds; data.Rect.Top = bounds.Bottom - height;
             SHAppBarMessage(2, ref data); // ABM_QUERYPOS excludes the taskbar and other appbars.
             data.Rect.Top = data.Rect.Bottom - height;
+            if (!data.Rect.IsValidDock(bounds)) throw new InvalidOperationException("Windows returned a transient invalid dock rectangle.");
             if (reserved is not DesktopRect previous || !previous.Equals(data.Rect))
             {
                 SHAppBarMessage(3, ref data); // ABM_SETPOS can adjust the proposed rectangle again.
+                if (!data.Rect.IsValidDock(bounds)) throw new InvalidOperationException("Windows returned a transient invalid dock rectangle.");
                 reserved = data.Rect;
             }
             return reserved!.Value;

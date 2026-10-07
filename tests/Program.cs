@@ -99,3 +99,7 @@ Check(Metrics.FitPowerBlock(powerMetrics, 1200, 1200).Count == powerMetrics.Coun
 Check(Metrics.FitPowerBlock(powerMetrics, 1200, 1500).Count == powerMetrics.Count, "More available width must restore the complete power block.");
 Check(fittedPower.Where(m => !m.Id.Contains("power", StringComparison.Ordinal)).SequenceEqual(powerMetrics.Where(m => !m.Id.Contains("power", StringComparison.Ordinal))), "Automatic fitting must preserve all non-power cells.");
 Console.WriteLine("PASS: automatic power collapse, exact-fit boundary, full-layout restoration and unaffected totals/cells.");
+var displayBounds = new DesktopRect { Left = -1920, Top = 0, Right = 0, Bottom = 1080 };
+Check(new DesktopRect { Left = -1920, Top = 1010, Right = 0, Bottom = 1040 }.IsValidDock(displayBounds), "Dock accepts negative virtual-desktop origins");
+Check(!new DesktopRect { Left = -1920, Top = 1100, Right = 0, Bottom = 1040 }.IsValidDock(displayBounds), "Dock rejects inverted RDP transition height");
+Check(!new DesktopRect { Left = -1920, Top = 1010, Right = 1, Bottom = 1040 }.IsValidDock(displayBounds), "Dock rejects stale display bounds");

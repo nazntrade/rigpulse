@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3 — 2026-10-07
+
+- Recover automatically when Remote Desktop changes screen size or DPI. Validate shell rectangles before applying panel dimensions, refresh native display bounds, and retry transient docking failures without disabling docking or showing a blocking dialog.
+
 ## 1.1.2 — 2026-10-07
 
 - Automatically show only the power sum when the full row exceeds the selected display width; restore individual watts when they fit.
