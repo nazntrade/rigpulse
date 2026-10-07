@@ -66,3 +66,12 @@ Check(Metrics.Build(null, powerSensors with { Timestamp = now.AddSeconds(-10) },
 Check(Metrics.Build(null, powerSensors with { CpuPowerWatts = double.NaN }, false, 3, now).Last().Text == "--", "Invalid power must be unavailable.");
 Check(System.Text.Json.JsonSerializer.Deserialize<Settings>(System.Text.Json.JsonSerializer.Serialize(new Settings { ShowComponentPower = false }))!.ShowComponentPower == false, "Power setting must persist.");
 Console.WriteLine("PASS: component power ordering, sum, integrated exclusion, toggle, missing and stale sensors.");
+Check(!new Settings().DockAboveTaskbar, "Existing installations must keep the compact overlay by default.");
+var oldSettings = System.Text.Json.JsonSerializer.Deserialize<Settings>("{\"FontSize\":14,\"StartAtLogin\":true}")!;
+Check(!oldSettings.DockAboveTaskbar && oldSettings.FontSize == 14 && oldSettings.StartAtLogin, "Old settings must retain their layout and sign-in options.");
+foreach (bool enabled in new[] { true, false })
+{
+    var restored = System.Text.Json.JsonSerializer.Deserialize<Settings>(System.Text.Json.JsonSerializer.Serialize(new Settings { DockAboveTaskbar = enabled }))!;
+    Check(restored.DockAboveTaskbar == enabled, "Docking choice must survive saving settings.");
+}
+Console.WriteLine("PASS: optional docking defaults, old settings compatibility and persistent toggle.");

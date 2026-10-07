@@ -86,6 +86,7 @@ public class Settings
     public int MaxFans { get; set; } = 3;
     public int Monitor { get; set; } = 0;
     public bool ShowComponentPower { get; set; } = true;
+    public bool DockAboveTaskbar { get; set; }
     public bool ShowIntegratedGpu { get; set; }
     public bool StartAtLogin { get; set; }
     public int CpuFanMaxRpm { get; set; } = 1800;

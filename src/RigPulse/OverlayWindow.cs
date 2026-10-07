@@ -28,6 +28,9 @@ public sealed class OverlayWindow : Window
     private bool paused;
     private int tick;
     private HashSet<string>? selectedFans;
+    private DesktopDock? dock;
+    private bool dockDirty = true, positioning, positionQueued, closing;
+    private double compactWidth;
     [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr window, int index);
     [DllImport("user32.dll")] private static extern int SetWindowLong(IntPtr window, int index, int value);
     public OverlayWindow(bool demo, bool peakDemo = false)
@@ -56,10 +59,18 @@ public sealed class OverlayWindow : Window
         tray = new Forms.NotifyIcon { Text = "RigPulse · hardware monitor", Icon = trayIcon, ContextMenuStrip = menu, Visible = true };
         tray.DoubleClick += (_, _) => Dispatcher.Invoke(OpenSettings);
         MouseRightButtonUp += (_, _) => menu.Show(Forms.Cursor.Position);
-        SourceInitialized += (_, _) => { var hwnd = new WindowInteropHelper(this).Handle; SetWindowLong(hwnd, -20, GetWindowLong(hwnd, -20) | 0x08000000 | 0x80); };
+        SourceInitialized += (_, _) => {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            SetWindowLong(hwnd, -20, GetWindowLong(hwnd, -20) | 0x08000000 | 0x80);
+            dock = new DesktopDock(hwnd);
+            dock.PositionChanged += QueuePosition;
+            dock.FullscreenChanged += fullscreen => { if (settings.DockAboveTaskbar) Topmost = !fullscreen; };
+            HwndSource.FromHwnd(hwnd)?.AddHook(WindowMessage);
+        };
         Loaded += (_, _) => { Refresh(); timer.Start(); };
         SizeChanged += (_, _) => Position();
         timer.Tick += (_, _) => Refresh();
+        Closing += (_, _) => { closing = true; dock?.Dispose(); };
         Closed += (_, _) => { timer.Stop(); tray.Dispose(); trayIcon.Dispose(); system?.Dispose(); sensors?.Dispose(); };
     }
     private void Refresh()
@@ -84,6 +95,7 @@ public sealed class OverlayWindow : Window
         if (key != topology)
         {
             topology = key; strip.Children.Clear(); values.Clear();
+            dockDirty = true;
             bool HasSeparator(Metric metric) => metric.Id == "power-cpu" || metric.Id.EndsWith("-power", StringComparison.Ordinal) || metric.Id == "power-sum" || metric.Id == "ram" || metric.Id.EndsWith("-load", StringComparison.Ordinal) && metric.Id != "cpu-load" || selectedFans?.Contains(metric.Id) == true;
             bool HasMetricDot(Metric metric) => metric.Id.EndsWith("-memory", StringComparison.Ordinal);
             foreach (var m in metrics)
@@ -105,7 +117,8 @@ public sealed class OverlayWindow : Window
             double total = metrics.Sum(m => (m.Characters + (m.Label.Length > 0 ? m.Label.Length + 1 : 0)) * settings.FontSize * .56 + 5 + (HasSeparator(m) ? 14 : 0) + (HasMetricDot(m) ? settings.FontSize * .56 + 5 : 0)) + 20;
             var screen = Forms.Screen.AllScreens[Math.Min(settings.Monitor, Forms.Screen.AllScreens.Length - 1)];
             double scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
-            surface.Width = Math.Min(Math.Ceiling(total), screen.WorkingArea.Width / scale - 24);
+            compactWidth = Math.Ceiling(total);
+            if (!settings.DockAboveTaskbar) surface.Width = Math.Min(compactWidth, screen.WorkingArea.Width / scale - 24);
         }
         foreach (var m in metrics)
         {
@@ -119,15 +132,84 @@ public sealed class OverlayWindow : Window
     }
     private void Position()
     {
+        if (closing || positioning) return;
         var screen = Forms.Screen.AllScreens[Math.Min(settings.Monitor, Forms.Screen.AllScreens.Length - 1)];
+        var bounds = new DesktopRect { Left = screen.Bounds.Left, Top = screen.Bounds.Top, Right = screen.Bounds.Right, Bottom = screen.Bounds.Bottom };
         var dpi = VisualTreeHelper.GetDpi(this);
-        Left = screen.WorkingArea.Left / dpi.DpiScaleX + 12;
-        Top = screen.WorkingArea.Bottom / dpi.DpiScaleY - ActualHeight - 2;
+        if (settings.DockAboveTaskbar && dock is not null)
+        {
+            if (!dockDirty && dock.Registered) return;
+            positioning = true;
+            try
+            {
+                SizeToContent = SizeToContent.Manual;
+                surface.CornerRadius = new CornerRadius(0); surface.Padding = new Thickness(8, 2, 8, 2);
+                strip.Measure(new Size(Math.Max(1, bounds.Width / dpi.DpiScaleX - 16), double.PositiveInfinity));
+                int height = (int)Math.Ceiling((strip.DesiredSize.Height + 4) * dpi.DpiScaleY);
+                var rect = dock.Reserve(bounds, height);
+                strip.Measure(new Size(Math.Max(1, rect.Width / dpi.DpiScaleX - 16), double.PositiveInfinity));
+                int fittedHeight = (int)Math.Ceiling((strip.DesiredSize.Height + 4) * dpi.DpiScaleY);
+                if (fittedHeight != height) rect = dock.Reserve(bounds, fittedHeight);
+                Width = rect.Width / dpi.DpiScaleX; Height = rect.Height / dpi.DpiScaleY;
+                surface.Width = Width;
+                dock.Move(rect);
+                dockDirty = false;
+            }
+            catch (Exception error)
+            {
+                dock.Dispose(); settings.DockAboveTaskbar = false; Program.Log(error);
+                Dispatcher.BeginInvoke(() => { Position(); System.Windows.MessageBox.Show(error.Message, "Could not dock RigPulse"); });
+            }
+            finally { positioning = false; }
+            return;
+        }
+        dock?.Dispose(); Topmost = true;
+        surface.CornerRadius = new CornerRadius(8); surface.Padding = new Thickness(10, 6, 10, 6);
+        Width = double.NaN; Height = double.NaN; SizeToContent = SizeToContent.WidthAndHeight;
+        var work = DesktopDock.WorkArea(bounds);
+        if (compactWidth > 0) surface.Width = Math.Min(compactWidth, work.Width / dpi.DpiScaleX - 24);
+        Left = work.Left / dpi.DpiScaleX + 12;
+        Top = work.Bottom / dpi.DpiScaleY - ActualHeight - 2;
+    }
+    private void QueuePosition()
+    {
+        dockDirty = true;
+        if (positionQueued || closing) return;
+        positionQueued = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => { positionQueued = false; dockDirty = true; Position(); });
+    }
+    private IntPtr WindowMessage(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        dock?.HandleMessage(message, wParam, lParam);
+        if (message is 0x1A or 0x7E or 0x2E0) QueuePosition();
+        return IntPtr.Zero;
+    }
+    internal void SetDockedForTest(bool enabled)
+    {
+        settings.DockAboveTaskbar = enabled; dockDirty = true; Position();
+    }
+    internal object LayoutSnapshot()
+    {
+        var screen = Forms.Screen.AllScreens[Math.Min(settings.Monitor, Forms.Screen.AllScreens.Length - 1)];
+        var bounds = new DesktopRect { Left = screen.Bounds.Left, Top = screen.Bounds.Top, Right = screen.Bounds.Right, Bottom = screen.Bounds.Bottom };
+        var rect = DesktopDock.WindowRect(new WindowInteropHelper(this).Handle);
+        var work = DesktopDock.WorkArea(bounds);
+        return new { docked = settings.DockAboveTaskbar, registered = dock?.Registered, monitor = settings.Monitor,
+            left = rect.Left, top = rect.Top, width = rect.Width, height = rect.Height,
+            workLeft = work.Left, workTop = work.Top, workRight = work.Right, workBottom = work.Bottom,
+            fontSize = settings.FontSize, padding = surface.Padding.Top, cornerRadius = surface.CornerRadius.TopLeft,
+            valueWidths = values.ToDictionary(p => p.Key, p => p.Value.Width) };
+    }
+    internal object WorkAreaSnapshot()
+    {
+        var screen = Forms.Screen.AllScreens[Math.Min(settings.Monitor, Forms.Screen.AllScreens.Length - 1)];
+        var work = DesktopDock.WorkArea(new DesktopRect { Left = screen.Bounds.Left, Top = screen.Bounds.Top, Right = screen.Bounds.Right, Bottom = screen.Bounds.Bottom });
+        return new { registered = dock?.Registered, workLeft = work.Left, workTop = work.Top, workRight = work.Right, workBottom = work.Bottom };
     }
     private void OpenSettings()
     {
         var window = new SettingsWindow(settings);
-        if (window.ShowDialog() == true) { settings = window.Result; settings.Save(); topology = ""; selectedFans = null; Refresh(); }
+        if (window.ShowDialog() == true) { settings = window.Result; settings.Save(); topology = ""; selectedFans = null; dockDirty = true; Refresh(); }
     }
     private void OpenLicenses()
     {

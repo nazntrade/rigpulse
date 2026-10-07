@@ -39,7 +39,29 @@ public static class Program
             if (!mutex.WaitOne(5000)) return;
             var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
             app.DispatcherUnhandledException += (_, e) => { Log(e.Exception); e.Handled = true; };
-            var window = new OverlayWindow(args.Contains("--demo") || args.Contains("--layout-test"), args.Contains("--peak-demo"));
+            var window = new OverlayWindow(args.Contains("--demo") || args.Contains("--layout-test") || args.Contains("--dock-test"), args.Contains("--peak-demo"));
+            if (args.Contains("--docked")) window.Loaded += (_, _) => window.SetDockedForTest(true);
+            if (args.Contains("--dock-test"))
+            {
+                int pathAt = Array.IndexOf(args, "--output");
+                string path = pathAt >= 0 ? args[pathAt + 1] : Path.Combine(Path.GetTempPath(), "rigpulse-dock-test.json");
+                var snapshots = new List<object>();
+                int step = 0;
+                window.Loaded += (_, _) => window.SetDockedForTest(false);
+                var testTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(750) };
+                testTimer.Tick += (_, _) => {
+                    snapshots.Add(window.LayoutSnapshot());
+                    if (step == 8) CaptureOverlay(window, path + ".png");
+                    if (++step == 4) window.SetDockedForTest(true);
+                    if (step == 10) window.SetDockedForTest(false);
+                    if (step == 14) {
+                        window.SetDockedForTest(true); // Exit must remove a live reservation too.
+                        testTimer.Stop(); window.Close();
+                        File.WriteAllText(path, JsonSerializer.Serialize(new { snapshots, afterClose = window.WorkAreaSnapshot() }, new JsonSerializerOptions { WriteIndented = true }));
+                    }
+                };
+                window.Loaded += (_, _) => testTimer.Start();
+            }
             if (args.Contains("--layout-test"))
             {
                 int outputAt = Array.IndexOf(args, "--output");
@@ -64,6 +86,13 @@ public static class Program
             app.Run(window);
         }
         catch (Exception e) { Log(e); if (!args.Any(a => a.Contains("worker"))) System.Windows.MessageBox.Show(e.Message, "RigPulse", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+    private static void CaptureOverlay(Window window, string path)
+    {
+        var image = new RenderTargetBitmap((int)Math.Ceiling(window.ActualWidth), (int)Math.Ceiling(window.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+        image.Render((Visual)window.Content);
+        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(image));
+        using var file = File.Create(path); encoder.Save(file);
     }
     public static void Log(Exception e) { try { Directory.CreateDirectory(Settings.DirectoryPath); File.AppendAllText(Path.Combine(Settings.DirectoryPath, "rigpulse.log"), $"{DateTimeOffset.UtcNow:u} {e}\n"); } catch { } }
 }

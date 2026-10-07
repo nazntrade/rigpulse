@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 — 2026-10-07
+
+- Add an optional full-width, low-height bar above the taskbar with Windows AppBar space reservation for maximized/snapped windows.
+- Preserve compact mode by default, the background, metric order, fixed numeric widths and existing settings.
+- Release reserved space when disabling docking or exiting; recalculate after display, DPI, taskbar and Explorer changes.
+
+
 ## 1.0.4 — 2026-10-05
 
 - Hide the empty sensor-status cell so there is no unused gap before component power. Numeric cell widths remain fixed; an explicit Starting/Stale/Partial status can still appear when needed.

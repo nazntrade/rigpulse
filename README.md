@@ -20,7 +20,7 @@ Get a Windows x64 installer or portable EXE from [Releases](https://github.com/n
 
 1. Install `RigPulse-Setup-<version>-win-x64.exe`, or run the portable EXE.
 2. The overlay appears just above the taskbar. Right-click it or the tray icon for Settings.
-3. Adjust font size, opacity, display, fan count and start at sign-in. Settings are per-user.
+3. Adjust font size, opacity, display, fan count and start at sign-in. Settings are per-user. Enable **Full-width bar above taskbar** to dock the panel; leave it unchecked for the original compact overlay.
 4. If CPU temperatures or motherboard fans show `--`, try **Restart as administrator** from the tray menu. CPU/RAM counters and many GPU sensors work without elevation; other sensors require driver access. Unsupported sensors may still show `--`.
 
 The installer also contains the **official signed PawnIO 2.1.0 sensor driver**. Its optional task appears only when the driver is missing. Installing that system component requires administrator approval. An existing PawnIO installation is kept; uninstalling RigPulse leaves this shared driver installed. Portable users need an existing sensor driver for CPU temperature / motherboard RPM, or can use the setup file's optional task. Neither format requires installing .NET separately.
@@ -28,6 +28,12 @@ The installer also contains the **official signed PawnIO 2.1.0 sensor driver**. 
 No fan speeds, voltages, clocks, power limits or overclock settings are changed. FanControl can continue controlling your fans independently.
 
 **Stable width:** thin dividers separate CPU, RAM, each GPU and individual fans; a middle dot separates each GPU temperature from its VRAM reading; values occupy fixed-width cells. `1% → 100%`, `32°C → 100°C` and changing RAM/RPM values do not resize the bar. The layout changes only when settings or available hardware change. A narrow display wraps cells while keeping their widths fixed. Units marked `G` are GiB (1024³ bytes).
+
+## Full-width docked bar
+
+The **Full-width bar above taskbar** checkbox is off by default. Enable it to fill the available display width just above the taskbar, with square corners, no exterior gaps and reduced vertical padding. The original background, opacity, metric order and fixed value widths are preserved; unused width remains empty rather than stretching the readings. A narrow display wraps metrics and reserves the height they need.
+
+Windows reserves this strip through its desktop-toolbar (AppBar) API. Maximized and snapped windows use the remaining work area. Normal windows can still be positioned manually, and full-screen applications can cover the bar. The selected display is used; display/DPI changes and Explorer restarts recalculate the reservation. Unchecking the option or exiting RigPulse releases its reserved area and restores the compact overlay. Other taskbars and appbars keep their own space.
 
 ## Component power
 

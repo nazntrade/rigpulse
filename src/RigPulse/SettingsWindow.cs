@@ -27,6 +27,8 @@ public sealed class SettingsWindow : Window
         var monitor = new ComboBox { ItemsSource = System.Windows.Forms.Screen.AllScreens.Select((s, i) => $"Display {i + 1} · {s.Bounds.Width}×{s.Bounds.Height}").ToArray(), SelectedIndex = Math.Min(current.Monitor, System.Windows.Forms.Screen.AllScreens.Length - 1), Margin = new Thickness(0, 6, 0, 14) }; panel.Children.Add(monitor);
         var integrated = new CheckBox { Content = "Show Intel integrated graphics", IsChecked = current.ShowIntegratedGpu, Margin = new Thickness(0, 0, 0, 12) }; panel.Children.Add(integrated);
         var power = new CheckBox { Content = "Show component power (CPU + discrete GPUs)", IsChecked = current.ShowComponentPower, Margin = new Thickness(0, 0, 0, 12) }; panel.Children.Add(power);
+        var dock = new CheckBox { Content = "Full-width bar above taskbar", IsChecked = current.DockAboveTaskbar, Margin = new Thickness(0, 0, 0, 4) }; panel.Children.Add(dock);
+        panel.Children.Add(new TextBlock { Text = "Reserve screen space so maximized and snapped windows end above the bar. Uncheck to keep the compact overlay.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
         var startup = new CheckBox { Content = "Start at Windows sign-in (current user)", IsChecked = current.StartAtLogin, Margin = new Thickness(0, 0, 0, 16) }; panel.Children.Add(startup);
         panel.Children.Add(new TextBlock { Text = "Missing temperatures or fans? Restart RigPulse as administrator from the tray menu. Sensor support depends on the hardware and driver. Fan labels can be edited in settings.json using sensor IDs from diagnostics.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 18) });
         panel.Children.Add(new TextBlock { Text = "Fan color references (RPM; display only)", FontWeight = FontWeights.Bold });
@@ -43,7 +45,7 @@ public sealed class SettingsWindow : Window
         save.Click += (_, _) => {
             if (!int.TryParse(cpuRpm.Text, out int cpuLimit) || !int.TryParse(systemRpm.Text, out int systemLimit) || cpuLimit is < 100 or > 30000 || systemLimit is < 100 or > 30000) { System.Windows.MessageBox.Show("Enter fan reference speeds between 100 and 30000 RPM.", "Invalid fan reference"); return; }
             Result = new Settings { FontSize = (int)font.Value, MaxFans = (int)fans.Value, Opacity = opacity.Value / 100,
-                ShowComponentPower = power.IsChecked == true, Monitor = monitor.SelectedIndex, ShowIntegratedGpu = integrated.IsChecked == true, StartAtLogin = startup.IsChecked == true, FanLabels = new(current.FanLabels), CpuFanMaxRpm = cpuLimit, SystemFanMaxRpm = systemLimit, FanMaxRpm = new(current.FanMaxRpm) };
+                DockAboveTaskbar = dock.IsChecked == true, ShowComponentPower = power.IsChecked == true, Monitor = monitor.SelectedIndex, ShowIntegratedGpu = integrated.IsChecked == true, StartAtLogin = startup.IsChecked == true, FanLabels = new(current.FanLabels), CpuFanMaxRpm = cpuLimit, SystemFanMaxRpm = systemLimit, FanMaxRpm = new(current.FanMaxRpm) };
             try {
                 using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
                 if (Result.StartAtLogin) key.SetValue("RigPulse", $"\"{Environment.ProcessPath}\""); else key.DeleteValue("RigPulse", false);

@@ -84,3 +84,15 @@ On 2026-10-04 the user confirmed that the installed 0.1.3 overlay no longer free
 - Tests cover ordering, sums, integrated-GPU exclusion, missing/invalid/stale inputs and persistent display toggle.
 - Physical idle diagnostics read CPU package 9.45 W and separate NVIDIA cards 8.80 W / 6.07 W; no stress test required.
 - WPF capture width remains 1593 DIP across six alternating low/high readings at 150% DPI.
+
+## 1.1.0 optional desktop dock
+
+Automated settings checks cover the compact default, compatibility with settings files that predate docking and persistence of both checkbox values. The existing metric, color, power and polling-priority checks remain part of the build.
+
+For a real Windows desktop check, close the existing overlay and run:
+
+```powershell
+./tests/Test-DesktopDock.ps1
+```
+
+This runs the actual WPF window with synthetic alternating values: compact, docked, compact again, and exit while docked. It records physical window bounds, the Windows monitor work area, padding, corners and each fixed value width. It verifies exact full-width placement above the taskbar, reduced padding, unchanged cells, restoration on uncheck and release on exit. A PNG and JSON are written to `artifacts/`. Settings are changed only in memory; the saved configuration is not modified. Full-screen applications and mixed-DPI monitor changes require separate interactive checks.
