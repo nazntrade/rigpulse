@@ -34,6 +34,10 @@ public static class Metrics
         ? Number(used, "0.0") + "/" + Number(total, "0.0") + "G" : "--";
     public static bool Fresh(DateTimeOffset? timestamp, DateTimeOffset now, double seconds = 5) =>
         timestamp is not null && (now - timestamp.Value).TotalSeconds <= seconds && timestamp <= now.AddSeconds(1);
+    public static List<Metric> FitPowerBlock(List<Metric> metrics, double requiredWidth, double availableWidth) =>
+        requiredWidth > availableWidth && metrics.Any(m => m.Id == "power-sum")
+            ? metrics.Where(m => m.Id != "power-cpu" && !m.Id.EndsWith("-power", StringComparison.Ordinal)).ToList()
+            : metrics;
     public static List<Metric> Build(SystemFrame? system, SensorFrame? sensors, bool showIntel, int maxFans, DateTimeOffset now, Settings? settings = null)
     {
         settings ??= new Settings();

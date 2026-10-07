@@ -90,3 +90,12 @@ Check(!serializedVisibility.ShowCpu && !serializedVisibility.ShowMemory && !seri
 var defaults = System.Text.Json.JsonSerializer.Deserialize<Settings>("{}")!;
 Check(defaults.ShowCpu && defaults.ShowMemory && defaults.ShowFans && defaults.HiddenGpuIds.Count == 0 && !defaults.PowerSumOnly, "Old settings must keep all existing components visible.");
 Console.WriteLine("PASS: independent visibility, stable GPU numbering, full power sum, master override and persistence.");
+
+var fittedPower = Metrics.FitPowerBlock(powerMetrics, 1200, 1199);
+Check(fittedPower.Where(m => m.Id.Contains("power", StringComparison.Ordinal)).Select(m => m.Id).SequenceEqual(new[] { "power-sum" }), "Narrow displays must collapse individual watts into the sum.");
+Check(fittedPower.Last().Text == powerMetrics.Last().Text, "Automatic collapse must not change the total.");
+Check(powerMetrics.Count > fittedPower.Count, "Fitting must not mutate the full layout used for later width checks.");
+Check(Metrics.FitPowerBlock(powerMetrics, 1200, 1200).Count == powerMetrics.Count, "An exact fit must retain individual watts.");
+Check(Metrics.FitPowerBlock(powerMetrics, 1200, 1500).Count == powerMetrics.Count, "More available width must restore the complete power block.");
+Check(fittedPower.Where(m => !m.Id.Contains("power", StringComparison.Ordinal)).SequenceEqual(powerMetrics.Where(m => !m.Id.Contains("power", StringComparison.Ordinal))), "Automatic fitting must preserve all non-power cells.");
+Console.WriteLine("PASS: automatic power collapse, exact-fit boundary, full-layout restoration and unaffected totals/cells.");

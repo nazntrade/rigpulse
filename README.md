@@ -41,7 +41,7 @@ Windows reserves this strip through its desktop-toolbar (AppBar) API. Maximized 
 
 Settings can hide CPU load/temperature, RAM, each discovered discrete GPU (load/temperature/VRAM together), all motherboard fans or the entire power block. GPU choices are saved by sensor ID; hiding GPU1 does not rename GPU2. All components remain visible by default for existing settings.
 
-**Show only the power sum** removes individual watt readings while keeping the total at the end. The total includes CPU and all discrete GPUs even when their monitoring blocks are hidden. The main power checkbox turns the entire block off and takes precedence over sum-only mode.
+**Show only the power sum** forces the total-only display. When unchecked, individual watts are shown when the full row fits the selected display; otherwise the power block automatically collapses to its sum. More available width restores individual readings. This uses fixed cell measurements so fluctuating values cannot toggle the mode. The total includes CPU and all discrete GPUs even when their monitoring blocks are hidden. The main power checkbox turns the entire block off and takes precedence over sum-only mode.
 
 ## Component power
 

@@ -15,6 +15,7 @@ public sealed class OverlayWindow : Window
     private readonly WrapPanel strip = new();
     private readonly Border surface = new();
     private readonly Dictionary<string, TextBlock> values = new();
+    private readonly Dictionary<string, double> measuredTextWidths = new();
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly Forms.NotifyIcon tray;
     private readonly System.Drawing.Icon trayIcon;
@@ -93,13 +94,31 @@ public sealed class OverlayWindow : Window
         if (demo) metrics = metrics.Select(m => m.Id == "status" ? m with { Text = "Demo" } : m).ToList();
         metrics = metrics.Select(m => settings.FanLabels.TryGetValue(m.Id, out var label) ? m with { Label = label.Length > 18 ? label[..18] : label } : m with { Label = m.Label.Replace("System Fan", "SYS Fan", StringComparison.Ordinal) }).ToList();
         metrics = metrics.Where(m => m.Id != "status" || !string.IsNullOrEmpty(m.Text)).ToList();
+        bool HasSeparator(Metric metric) => metric != metrics[0] && (metric.Id == "power-cpu" || metric.Id.EndsWith("-power", StringComparison.Ordinal) || metric.Id == "power-sum" || metric.Id == "ram" || metric.Id.EndsWith("-load", StringComparison.Ordinal) && metric.Id != "cpu-load" || selectedFans?.Contains(metric.Id) == true);
+        bool HasMetricDot(Metric metric) => metric.Id.EndsWith("-memory", StringComparison.Ordinal);
+        var layoutScreen = Forms.Screen.AllScreens[Math.Min(settings.Monitor, Forms.Screen.AllScreens.Length - 1)];
+        var layoutDpi = VisualTreeHelper.GetDpi(this);
+        double TextWidth(string text) {
+            string cacheKey = settings.FontSize + ":" + layoutDpi.PixelsPerDip + ":" + text;
+            if (!measuredTextWidths.TryGetValue(cacheKey, out double width)) {
+                var block = new TextBlock { Text = text, FontFamily = new FontFamily("Consolas"), FontSize = settings.FontSize, FontWeight = FontWeights.Bold };
+                block.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                measuredTextWidths[cacheKey] = width = block.DesiredSize.Width;
+            }
+            return width;
+        }
+        double requiredWidth = metrics.Sum(m => Math.Ceiling(m.Characters * settings.FontSize * .56) +
+            (m.Label.Length > 0 ? TextWidth(m.Label + " ") : 0) + 5 + (HasSeparator(m) ? 14 : 0) +
+            (HasMetricDot(m) ? TextWidth("·") + 5 : 0));
+        double availableWidth = layoutScreen.WorkingArea.Width / layoutDpi.DpiScaleX - (settings.DockAboveTaskbar ? 16 : 44);
+        // Decide from fixed cell widths and the display, never from changing readings
+        // or the already-collapsed panel width. A wider display restores details.
+        metrics = Metrics.FitPowerBlock(metrics, requiredWidth, availableWidth);
         string key = string.Join("|", metrics.Select(m => m.Id + ":" + m.Label));
         if (key != topology)
         {
             topology = key; strip.Children.Clear(); values.Clear();
             dockDirty = true;
-            bool HasSeparator(Metric metric) => metric != metrics[0] && (metric.Id == "power-cpu" || metric.Id.EndsWith("-power", StringComparison.Ordinal) || metric.Id == "power-sum" || metric.Id == "ram" || metric.Id.EndsWith("-load", StringComparison.Ordinal) && metric.Id != "cpu-load" || selectedFans?.Contains(metric.Id) == true);
-            bool HasMetricDot(Metric metric) => metric.Id.EndsWith("-memory", StringComparison.Ordinal);
             foreach (var m in metrics)
             {
                 var cell = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 5, 0) };

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.2 — 2026-10-07
+
+- Automatically show only the power sum when the full row exceeds the selected display width; restore individual watts when they fit.
+- Base fitting on measured fixed-width cells, independent of live numeric values. Preserve the manual sum-only override.
+
+
 ## 1.1.1 — 2026-10-07
 
 - Add persistent visibility switches for CPU, RAM, individual discrete GPUs, all fans and component power.

@@ -42,6 +42,7 @@ public sealed class SettingsWindow : Window
         var showFans = AddToggle("Show all motherboard fans", current.ShowFans);
         var power = new CheckBox { Content = "Show component power (CPU + discrete GPUs)", IsChecked = current.ShowComponentPower, Margin = new Thickness(0, 0, 0, 12) }; panel.Children.Add(power);
         var sumOnly = AddToggle("Show only the power sum", current.PowerSumOnly);
+        panel.Children.Add(new TextBlock { Text = "When unchecked, individual watts appear when they fit; otherwise only the sum is shown automatically.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) });
         sumOnly.IsEnabled = power.IsChecked == true;
         power.Checked += (_, _) => sumOnly.IsEnabled = true;
         power.Unchecked += (_, _) => sumOnly.IsEnabled = false;

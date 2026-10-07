@@ -102,3 +102,7 @@ This runs the actual WPF window with synthetic alternating values: compact, dock
 - Tests cover independent CPU/RAM/fan hiding, complete per-GPU block hiding, stable GPU2 numbering when GPU1 is hidden, sum-only mode, full sums independent of visibility, master power override and persisted settings.
 - The actual WPF dock cycle passed on Windows: 3840 physical pixels wide, 28 pixels reserved, fixed value widths in both modes, restored work area on uncheck and on exit.
 - The installed 1.1.1 executable and sign-in task were verified. Existing settings were unchanged; elevated diagnostics continued reading CPU temperature, both NVIDIA cards and motherboard fans.
+
+## 1.1.2 automatic power fitting
+
+The power block uses measured label widths and fixed numeric cells against the selected display's available width. Tests cover an undersized display, an exact fit, a wider display, unchanged totals and preservation of non-power metrics. The full metric list is rebuilt before each fit decision, allowing details to return when space increases. The manual sum-only choice remains a persistent override.
