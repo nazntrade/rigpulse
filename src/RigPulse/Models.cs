@@ -43,15 +43,18 @@ public static class Metrics
             new("cpu-temp", "", 5, Number(slow ? sensors?.CpuTemperature : null, "0", "°C"), slow ? sensors?.CpuTemperature : null, "CPU temperature"),
             new("ram", "RAM", 12, fast ? Memory(system?.MemoryUsed, system?.MemoryTotal) : "--", fast && system is not null && system.MemoryTotal > 0 ? system.MemoryUsed / system.MemoryTotal * 100 : null, "Physical RAM used / total (GiB)")
         };
+        if (!settings.ShowCpu) result.RemoveAll(m => m.Id is "cpu-load" or "cpu-temp");
+        if (!settings.ShowMemory) result.RemoveAll(m => m.Id == "ram");
         int index = 0;
         foreach (var gpu in (sensors?.Gpus ?? []).Where(g => showIntel || g.Type != "GpuIntel").OrderBy(g => g.DriverIndex ?? int.MaxValue).ThenBy(g => g.Id, StringComparer.Ordinal))
         {
             string label = gpu.Type == "GpuIntel" ? "iGPU" : "GPU" + ++index;
+            if (settings.HiddenGpuIds.Contains(gpu.Id)) continue;
             result.Add(new(gpu.Id + "-load", label, 4, Number(slow ? gpu.Load : null, "0", "%"), slow ? gpu.Load : null, gpu.Name + " · " + gpu.Id));
             result.Add(new(gpu.Id + "-temp", "", 5, Number(slow ? gpu.Temperature : null, "0", "°C"), slow ? gpu.Temperature : null, gpu.Name));
             result.Add(new(gpu.Id + "-memory", "VRAM", 12, slow ? Memory(gpu.Used, gpu.Total) : "--", slow && gpu.Total is > 0 ? gpu.Used / gpu.Total * 100 : null, gpu.Name + " · dedicated memory used / total (GiB)"));
         }
-        foreach (var fan in sensors?.Fans.Take(maxFans) ?? [])
+        foreach (var fan in settings.ShowFans ? sensors?.Fans.Take(maxFans) ?? [] : [])
         {
             int reference = FanReference(fan, settings);
             double? level = slow && fan.Rpm is double rpm && double.IsFinite(rpm) && rpm >= 0 && reference > 0 ? Math.Clamp(rpm / reference * 100, 0, 100) : null;
@@ -65,12 +68,13 @@ public static class Metrics
             double? Valid(double? value) => slow && value is double v && double.IsFinite(v) && v >= 0 ? v : null;
             double? cpuWatts = Valid(sensors?.CpuPowerWatts);
             var powers = new List<double?> { cpuWatts };
-            result.Add(new("power-cpu", "PWR CPU", 5, Number(cpuWatts, "0", "W"), cpuWatts is null ? null : 0, "CPU package power; includes integrated graphics when part of the package."));
+            if (!settings.PowerSumOnly) result.Add(new("power-cpu", "PWR CPU", 5, Number(cpuWatts, "0", "W"), cpuWatts is null ? null : 0, "CPU package power; includes integrated graphics when part of the package."));
             int powerIndex = 0;
             foreach (var gpu in (sensors?.Gpus ?? []).Where(g => g.Type != "GpuIntel").OrderBy(g => g.DriverIndex ?? int.MaxValue).ThenBy(g => g.Id, StringComparer.Ordinal))
             {
                 var watts = Valid(gpu.PowerWatts); powers.Add(watts);
-                result.Add(new(gpu.Id + "-power", "GPU" + ++powerIndex, 5, Number(watts, "0", "W"), watts is null ? null : 0, gpu.Name + " · device power"));
+                powerIndex++;
+                if (!settings.PowerSumOnly) result.Add(new(gpu.Id + "-power", "GPU" + powerIndex, 5, Number(watts, "0", "W"), watts is null ? null : 0, gpu.Name + " · device power"));
             }
             double? total = powers.All(p => p is not null) ? powers.Sum(p => p!.Value) : null;
             result.Add(new("power-sum", "Σ CPU+GPU", 6, Number(total, "0", "W"), total is null ? null : 0, "Sum of CPU package and discrete GPU power, not whole-PC wall power. Excludes PSU losses, motherboard, drives and fans. Missing components make the sum unavailable."));
@@ -86,6 +90,11 @@ public class Settings
     public int MaxFans { get; set; } = 3;
     public int Monitor { get; set; } = 0;
     public bool ShowComponentPower { get; set; } = true;
+    public bool PowerSumOnly { get; set; }
+    public bool ShowCpu { get; set; } = true;
+    public bool ShowMemory { get; set; } = true;
+    public bool ShowFans { get; set; } = true;
+    public HashSet<string> HiddenGpuIds { get; set; } = new(StringComparer.Ordinal);
     public bool DockAboveTaskbar { get; set; }
     public bool ShowIntegratedGpu { get; set; }
     public bool StartAtLogin { get; set; }
@@ -109,6 +118,7 @@ public class Settings
         FanMaxRpm ??= new();
         FanMaxRpm = FanMaxRpm.Where(p => p.Value is >= 100 and <= 30000).ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
         FanLabels ??= new();
+        HiddenGpuIds = new HashSet<string>((HiddenGpuIds ?? []).Where(id => !string.IsNullOrWhiteSpace(id)), StringComparer.Ordinal);
     }
     public void Save()
     {

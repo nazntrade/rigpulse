@@ -28,6 +28,7 @@ public sealed class OverlayWindow : Window
     private bool paused;
     private int tick;
     private HashSet<string>? selectedFans;
+    private GpuFrame[] availableGpus = [];
     private DesktopDock? dock;
     private bool dockDirty = true, positioning, positionQueued, closing;
     private double compactWidth;
@@ -84,6 +85,7 @@ public sealed class OverlayWindow : Window
             [new("/gpu-nvidia/0", "NVIDIA GPU 1", "GpuNvidia", (peakDemo || tick % 2 == 0) ? 100 : 0, peakDemo ? 86 : 38, peakDemo ? 15.2 : .4, 15.9), new("/gpu-nvidia/1", "NVIDIA GPU 2", "GpuNvidia", peakDemo ? 100 : 0, peakDemo ? 86 : 35, peakDemo ? 15.2 : .4, 15.9)],
             [new("/fan/0", "CPU Fan", (peakDemo || tick % 2 == 0) ? 1818 : 699), new("/fan/1", "SYS Fan #1", peakDemo ? 1263 : 708), new("/fan/2", "SYS Fan #2", peakDemo ? 1294 : 700)]) : sensors?.Latest;
         if (demo && slow is not null) slow = slow with { CpuPowerWatts = (peakDemo || tick % 2 == 0) ? 228 : 8, Gpus = slow.Gpus.Select(g => g with { PowerWatts = (peakDemo || tick % 2 == 0) ? 180 : 7 }).ToArray() };
+        if (slow is not null) availableGpus = slow.Gpus;
         if (slow is not null && selectedFans is null && slow.Fans.Any(f => f.Rpm is > 0))
             selectedFans = slow.Fans.Where(f => f.Rpm is > 0).Take(settings.MaxFans).Select(f => f.Id).ToHashSet(StringComparer.Ordinal);
         if (slow is not null && selectedFans is not null) slow = slow with { Fans = slow.Fans.Where(f => selectedFans.Contains(f.Id)).ToArray() };
@@ -96,7 +98,7 @@ public sealed class OverlayWindow : Window
         {
             topology = key; strip.Children.Clear(); values.Clear();
             dockDirty = true;
-            bool HasSeparator(Metric metric) => metric.Id == "power-cpu" || metric.Id.EndsWith("-power", StringComparison.Ordinal) || metric.Id == "power-sum" || metric.Id == "ram" || metric.Id.EndsWith("-load", StringComparison.Ordinal) && metric.Id != "cpu-load" || selectedFans?.Contains(metric.Id) == true;
+            bool HasSeparator(Metric metric) => metric != metrics[0] && (metric.Id == "power-cpu" || metric.Id.EndsWith("-power", StringComparison.Ordinal) || metric.Id == "power-sum" || metric.Id == "ram" || metric.Id.EndsWith("-load", StringComparison.Ordinal) && metric.Id != "cpu-load" || selectedFans?.Contains(metric.Id) == true);
             bool HasMetricDot(Metric metric) => metric.Id.EndsWith("-memory", StringComparison.Ordinal);
             foreach (var m in metrics)
             {
@@ -208,7 +210,7 @@ public sealed class OverlayWindow : Window
     }
     private void OpenSettings()
     {
-        var window = new SettingsWindow(settings);
+        var window = new SettingsWindow(settings, availableGpus);
         if (window.ShowDialog() == true) { settings = window.Result; settings.Save(); topology = ""; selectedFans = null; dockDirty = true; Refresh(); }
     }
     private void OpenLicenses()

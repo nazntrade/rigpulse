@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 — 2026-10-07
+
+- Add persistent visibility switches for CPU, RAM, individual discrete GPUs, all fans and component power.
+- Add power-sum-only mode, retaining the complete CPU/discrete-GPU sum independently of hidden monitoring blocks.
+- Preserve GPU numbering, old settings defaults and fixed numeric widths.
+
+
 ## 1.1.0 — 2026-10-07
 
 - Add an optional full-width, low-height bar above the taskbar with Windows AppBar space reservation for maximized/snapped windows.

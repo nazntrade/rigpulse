@@ -96,3 +96,9 @@ For a real Windows desktop check, close the existing overlay and run:
 ```
 
 This runs the actual WPF window with synthetic alternating values: compact, docked, compact again, and exit while docked. It records physical window bounds, the Windows monitor work area, padding, corners and each fixed value width. It verifies exact full-width placement above the taskbar, reduced padding, unchanged cells, restoration on uncheck and release on exit. A PNG and JSON are written to `artifacts/`. Settings are changed only in memory; the saved configuration is not modified. Full-screen applications and mixed-DPI monitor changes require separate interactive checks.
+
+## 1.1.1 component visibility validation
+
+- Tests cover independent CPU/RAM/fan hiding, complete per-GPU block hiding, stable GPU2 numbering when GPU1 is hidden, sum-only mode, full sums independent of visibility, master power override and persisted settings.
+- The actual WPF dock cycle passed on Windows: 3840 physical pixels wide, 28 pixels reserved, fixed value widths in both modes, restored work area on uncheck and on exit.
+- The installed 1.1.1 executable and sign-in task were verified. Existing settings were unchanged; elevated diagnostics continued reading CPU temperature, both NVIDIA cards and motherboard fans.

@@ -35,6 +35,14 @@ The **Full-width bar above taskbar** checkbox is off by default. Enable it to fi
 
 Windows reserves this strip through its desktop-toolbar (AppBar) API. Maximized and snapped windows use the remaining work area. Normal windows can still be positioned manually, and full-screen applications can cover the bar. The selected display is used; display/DPI changes and Explorer restarts recalculate the reservation. Unchecking the option or exiting RigPulse releases its reserved area and restores the compact overlay. Other taskbars and appbars keep their own space.
 
+![Synthetic full-width docked bar](docs/rigpulse-docked-demo.png)
+
+## Component visibility
+
+Settings can hide CPU load/temperature, RAM, each discovered discrete GPU (load/temperature/VRAM together), all motherboard fans or the entire power block. GPU choices are saved by sensor ID; hiding GPU1 does not rename GPU2. All components remain visible by default for existing settings.
+
+**Show only the power sum** removes individual watt readings while keeping the total at the end. The total includes CPU and all discrete GPUs even when their monitoring blocks are hidden. The main power checkbox turns the entire block off and takes precedence over sum-only mode.
+
 ## Component power
 
 Enable or disable **Show component power (CPU + discrete GPUs)** in Settings. The final block shows CPU package watts, each discrete GPU and their sum. CPU package power comes from LibreHardwareMonitor; NVIDIA GPU power comes from NVML (milliwatts converted to watts). Integrated GPU power is excluded from the sum because it is already part of the CPU package. This is not whole-PC wall consumption: motherboard, drives, fans and PSU losses are excluded. Missing or stale components show -- and make the sum unavailable. Watts are neutral green, without invented safety thresholds.

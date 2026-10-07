@@ -75,3 +75,18 @@ foreach (bool enabled in new[] { true, false })
     Check(restored.DockAboveTaskbar == enabled, "Docking choice must survive saving settings.");
 }
 Console.WriteLine("PASS: optional docking defaults, old settings compatibility and persistent toggle.");
+
+var visibility = new Settings { ShowCpu = false, ShowMemory = false, ShowFans = false, PowerSumOnly = true, HiddenGpuIds = new() { "/gpu-nvidia/0" } };
+var visible = Metrics.Build(new(now, 5, 10, 64), powerSensors, false, 3, now, visibility);
+Check(!visible.Any(m => m.Id is "cpu-load" or "cpu-temp" or "ram" or "fan"), "CPU, RAM and fans must be independently hideable.");
+Check(!visible.Any(m => m.Id.StartsWith("/gpu-nvidia/0-", StringComparison.Ordinal)), "Hiding a GPU must remove its load, temperature and VRAM together.");
+Check(visible.Single(m => m.Id == "/gpu-nvidia/1-load").Label == "GPU2", "Hiding GPU1 must not rename GPU2.");
+Check(visible.Where(m => m.Id.Contains("power", StringComparison.Ordinal)).Select(m => m.Id).SequenceEqual(new[] { "power-sum" }), "Sum-only mode must omit all individual watt cells.");
+Check(visible.Last().Text == "265W", "Hidden components must still contribute to the complete power sum.");
+visibility.ShowComponentPower = false;
+Check(!Metrics.Build(null, powerSensors, false, 3, now, visibility).Any(m => m.Id.Contains("power", StringComparison.Ordinal)), "The master power switch must override sum-only mode.");
+var serializedVisibility = System.Text.Json.JsonSerializer.Deserialize<Settings>(System.Text.Json.JsonSerializer.Serialize(visibility))!;
+Check(!serializedVisibility.ShowCpu && !serializedVisibility.ShowMemory && !serializedVisibility.ShowFans && serializedVisibility.PowerSumOnly && serializedVisibility.HiddenGpuIds.Contains("/gpu-nvidia/0"), "Visibility choices must persist.");
+var defaults = System.Text.Json.JsonSerializer.Deserialize<Settings>("{}")!;
+Check(defaults.ShowCpu && defaults.ShowMemory && defaults.ShowFans && defaults.HiddenGpuIds.Count == 0 && !defaults.PowerSumOnly, "Old settings must keep all existing components visible.");
+Console.WriteLine("PASS: independent visibility, stable GPU numbering, full power sum, master override and persistence.");
