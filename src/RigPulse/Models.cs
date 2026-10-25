@@ -17,6 +17,9 @@ public static class Metrics
     {
         if (metric.Id == "status" && metric.Text is "Stale" or "Partial") return MetricTone.Medium;
         if (metric.Level is not double level || !double.IsFinite(level)) return MetricTone.Unavailable;
+        if (metric.Id == "power-sum")
+            return level > 300 ? MetricTone.Critical : level > 200 ? MetricTone.High
+                : level > 100 ? MetricTone.Medium : MetricTone.Low;
         var thresholds = metric.Id == "cpu-temp" ? (65d, 80d, 90d)
             : metric.Id.EndsWith("-temp", StringComparison.Ordinal) ? (65d, 75d, 85d) : (60d, 80d, 95d);
         return level >= thresholds.Item3 ? MetricTone.Critical : level >= thresholds.Item2 ? MetricTone.High
@@ -81,7 +84,7 @@ public static class Metrics
                 if (!settings.PowerSumOnly) result.Add(new(gpu.Id + "-power", "GPU" + powerIndex, 5, Number(watts, "0", "W"), watts is null ? null : 0, gpu.Name + " · device power"));
             }
             double? total = powers.All(p => p is not null) ? powers.Sum(p => p!.Value) : null;
-            result.Add(new("power-sum", "Σ CPU+GPU", 6, Number(total, "0", "W"), total is null ? null : 0, "Sum of CPU package and discrete GPU power, not whole-PC wall power. Excludes PSU losses, motherboard, drives and fans. Missing components make the sum unavailable."));
+            result.Add(new("power-sum", "Σ CPU+GPU", 6, Number(total, "0", "W"), total, "Sum of CPU package and discrete GPU power, not whole-PC wall power. Excludes PSU losses, motherboard, drives and fans. Missing components make the sum unavailable."));
         }
         return result;
     }

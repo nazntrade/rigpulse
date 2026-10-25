@@ -60,6 +60,24 @@ Console.WriteLine("PASS: four colors, screenshot fan peaks, distinct temperature
 var powerSensors = sensor with { CpuPowerWatts = 35, Gpus = [gpu with { PowerWatts = 120, DriverIndex = 1 }, gpu with { Id = "/gpu-nvidia/0", PowerWatts = 110, DriverIndex = 0 }, gpu with { Id = "/gpu-intel/0", Type = "GpuIntel", PowerWatts = 20 }] };
 var powerMetrics = Metrics.Build(null, powerSensors, false, 3, now);
 Check(powerMetrics.Last().Id == "power-sum" && powerMetrics.Last().Text == "265W", "Power belongs at the end and excludes integrated GPU double counting.");
+Check(powerMetrics.Last().Level == 265 && Metrics.Tone(powerMetrics.Last()) == MetricTone.High, "The complete power sum must carry watts into its orange tone.");
+foreach (var (watts, tone) in new[] {
+    (0d, MetricTone.Low), (99.999d, MetricTone.Low), (100d, MetricTone.Low),
+    (100.001d, MetricTone.Medium), (199.999d, MetricTone.Medium), (200d, MetricTone.Medium),
+    (200.001d, MetricTone.High), (299.999d, MetricTone.High), (300d, MetricTone.High),
+    (300.001d, MetricTone.Critical), (450d, MetricTone.Critical) })
+{
+    var sum = Metrics.Build(null, powerSensors with { CpuPowerWatts = watts, Gpus = [] }, false, 3, now).Last();
+    Check(sum.Level == watts && Metrics.Tone(sum) == tone, "Power sum must use strict watt thresholds: " + watts);
+}
+foreach (var unavailable in new[] {
+    powerSensors with { CpuPowerWatts = null }, powerSensors with { CpuPowerWatts = double.NaN },
+    powerSensors with { CpuPowerWatts = double.PositiveInfinity }, powerSensors with { CpuPowerWatts = -1 },
+    powerSensors with { Gpus = [gpu with { PowerWatts = null }] },
+    powerSensors with { Timestamp = now.AddSeconds(-10) } })
+    Check(Metrics.Tone(Metrics.Build(null, unavailable, false, 3, now).Last()) == MetricTone.Unavailable, "Missing, invalid and stale totals must remain unavailable.");
+Check(powerMetrics.Where(m => m.Id == "power-cpu" || m.Id.EndsWith("-power")).All(m => Metrics.Tone(m) == MetricTone.Low), "Individual power readings must retain their existing green tone.");
+Console.WriteLine("PASS: CPU+GPU sum watt thresholds, exact boundaries, unavailable totals and unchanged individual watts.");
 Check(Metrics.Build(null, powerSensors, false, 3, now, new Settings { ShowComponentPower = false }).All(m => !m.Id.Contains("power")), "Power toggle must remove the entire block.");
 Check(Metrics.Build(null, powerSensors with { CpuPowerWatts = null }, false, 3, now).Last().Text == "--", "Incomplete power must not appear to be a complete sum.");
 Check(Metrics.Build(null, powerSensors with { Timestamp = now.AddSeconds(-10) }, false, 3, now).Last().Text == "--", "Stale power must be unavailable.");

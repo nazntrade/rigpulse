@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.4 — 2026-10-25
+
+- Color the CPU+GPU power sum green at 100 W or below, yellow above 100 W through 200 W, orange above 200 W through 300 W, and red above 300 W. Keep unavailable readings gray and individual component watts green.
+
 ## 1.1.3 — 2026-10-07
 
 - Recover automatically when Remote Desktop changes screen size or DPI. Validate shell rectangles before applying panel dimensions, refresh native display bounds, and retry transient docking failures without disabling docking or showing a blocking dialog.

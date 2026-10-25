@@ -45,7 +45,7 @@ Settings can hide CPU load/temperature, RAM, each discovered discrete GPU (load/
 
 ## Component power
 
-Enable or disable **Show component power (CPU + discrete GPUs)** in Settings. The final block shows CPU package watts, each discrete GPU and their sum. CPU package power comes from LibreHardwareMonitor; NVIDIA GPU power comes from NVML (milliwatts converted to watts). Integrated GPU power is excluded from the sum because it is already part of the CPU package. This is not whole-PC wall consumption: motherboard, drives, fans and PSU losses are excluded. Missing or stale components show -- and make the sum unavailable. Watts are neutral green, without invented safety thresholds.
+Enable or disable **Show component power (CPU + discrete GPUs)** in Settings. The final block shows CPU package watts, each discrete GPU and their sum. CPU package power comes from LibreHardwareMonitor; NVIDIA GPU power comes from NVML (milliwatts converted to watts). Integrated GPU power is excluded from the sum because it is already part of the CPU package. This is not whole-PC wall consumption: motherboard, drives, fans and PSU losses are excluded. Missing or stale components show -- and make the sum unavailable. The CPU+GPU sum is green at 100 W or below, yellow above 100 W through 200 W, orange above 200 W through 300 W, and red above 300 W. Individual component watts remain green.
 
 ## Reading colors
 
