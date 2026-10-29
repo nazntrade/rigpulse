@@ -105,7 +105,7 @@ Install a valid code-signing certificate in the current user's certificate store
 .\scripts\build.ps1 -Signed
 ```
 
-The script signs both the application and installer, requests a SHA-256 timestamp, signs the uninstaller and rejects signatures that Windows does not validate. Signing keys, passwords and certificates must never be committed. Signing is not configured for pull requests. CI produces **unsigned review artifacts**, not signed releases.
+The script signs both the application and installer, requests a SHA-256 timestamp, signs the uninstaller and rejects signatures that Windows does not validate. Signing keys, passwords and certificates must never be committed. Cloud builds are disabled by user instruction (2026-10-29). Run tests and builds locally with `scripts/build.ps1`; pushing commits, tags or pull requests must not trigger a GitHub Actions build. Publish the verified local artifacts separately when needed.
 
 ## License
 
