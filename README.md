@@ -33,7 +33,7 @@ No fan speeds, voltages, clocks, power limits or overclock settings are changed.
 
 The **Full-width bar above taskbar** checkbox is off by default. Enable it to fill the available display width just above the taskbar, with square corners, no exterior gaps and reduced vertical padding. The original background, opacity, metric order and fixed value widths are preserved; unused width remains empty rather than stretching the readings. A narrow display wraps metrics and reserves the height they need.
 
-Windows reserves this strip through its desktop-toolbar (AppBar) API. Maximized and snapped windows use the remaining work area. Normal windows can still be positioned manually, and full-screen applications can cover the bar. The selected display is used; display/DPI changes and Explorer restarts recalculate the reservation. Unchecking the option or exiting RigPulse releases its reserved area and restores the compact overlay. Other taskbars and appbars keep their own space.
+The panel checks its actual position and reserved work area every refresh. If RDP or a display change loses the shell reservation or moves the panel onto the taskbar, it re-registers and restores its position automatically. Windows reserves this strip through its desktop-toolbar (AppBar) API. Maximized and snapped windows use the remaining work area. Normal windows can still be positioned manually, and full-screen applications can cover the bar. The selected display is used; display/DPI changes and Explorer restarts recalculate the reservation. Unchecking the option or exiting RigPulse releases its reserved area and restores the compact overlay. Other taskbars and appbars keep their own space.
 
 ![Synthetic full-width docked bar](docs/rigpulse-docked-demo.png)
 
@@ -112,3 +112,9 @@ The script signs both the application and installer, requests a SHA-256 timestam
 RigPulse is MIT-licensed. LibreHardwareMonitor and other bundled dependencies keep their own licenses; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Hardware support and performance reports are welcome in [Issues](https://github.com/nazntrade/rigpulse/issues).
 
 See [validation results](docs/TESTING.md) and [design notes](docs/DESIGN.md).
+
+### Dock recovery validation (1.1.5)
+
+![Running recovery test interface with synthetic readings](docs/rigpulse-recovery-1.1.5.png)
+
+[Short recording of the running test interface](docs/rigpulse-recovery-1.1.5.gif). These cropped desktop captures show synthetic sensor values. Native geometry reports validate automatic recovery from displacement and a lost Windows reservation; see [testing notes](docs/TESTING.md#115-dock-recovery-2026-11-13). They do not record a real RDP reconnect.

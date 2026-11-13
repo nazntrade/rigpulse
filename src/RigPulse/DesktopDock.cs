@@ -66,6 +66,9 @@ public sealed class DesktopDock : IDisposable
             throw new InvalidOperationException("The display configuration is still changing.");
         return info.Bounds;
     }
+    public static bool OccupiesReservation(DesktopRect actual, DesktopRect bounds, DesktopRect workArea) =>
+        actual.IsValidDock(bounds) && actual.Left == bounds.Left && actual.Right == bounds.Right &&
+        actual.Top == workArea.Bottom;
     public static DesktopRect WindowRect(IntPtr window)
     {
         if (!GetWindowRect(window, out var rect)) throw new InvalidOperationException("Windows could not read the panel position.");
@@ -126,6 +129,11 @@ public sealed class DesktopDock : IDisposable
             var data = Data(); data.Parameter = wParam;
             SHAppBarMessage(message == 0x6 ? 6u : 9u, ref data); // ACTIVATE / WINDOWPOSCHANGED
         }
+    }
+    internal void ForgetShellRegistrationForTest()
+    {
+        var data = Data(); SHAppBarMessage(1, ref data);
+        // Intentionally retain the cached flag to reproduce shell state loss.
     }
     public void Dispose()
     {

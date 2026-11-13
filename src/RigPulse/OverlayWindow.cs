@@ -161,10 +161,19 @@ public sealed class OverlayWindow : Window
         if (settings.DockAboveTaskbar && dock is not null)
         {
             if (DateTime.UtcNow < retryPositionAfter) return;
-            if (!dockDirty && dock.Registered) return;
+
             positioning = true;
             try
             {
+                // Shell registrations can be lost during RDP/display transitions without
+                // our cached Registered flag changing. Verify the real reservation.
+                if (!dockDirty && dock.Registered)
+                {
+                    var actual = DesktopDock.WindowRect(new WindowInteropHelper(this).Handle);
+                    var workArea = DesktopDock.WorkArea(bounds);
+                    if (DesktopDock.OccupiesReservation(actual, bounds, workArea)) return;
+                    dock.Dispose();
+                }
                 SizeToContent = SizeToContent.Manual;
                 surface.CornerRadius = new CornerRadius(0); surface.Padding = new Thickness(8, 2, 8, 2);
                 strip.Measure(new Size(Math.Max(1, bounds.Width / dpi.DpiScaleX - 16), double.PositiveInfinity));
@@ -213,6 +222,15 @@ public sealed class OverlayWindow : Window
     internal void SetDockedForTest(bool enabled)
     {
         settings.DockAboveTaskbar = enabled; dockDirty = true; Position();
+    }
+    internal void DisturbDockForTest(bool removeReservation)
+    {
+        if (dock is null) throw new InvalidOperationException("Dock is not initialized.");
+        if (removeReservation) dock.ForgetShellRegistrationForTest();
+        var rect = DesktopDock.WindowRect(new WindowInteropHelper(this).Handle);
+        rect.Top += 40; rect.Bottom += 40;
+        dock.Move(rect);
+        // Keep dockDirty false: recovery must work without a shell notification.
     }
     internal object LayoutSnapshot()
     {

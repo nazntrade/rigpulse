@@ -10,3 +10,6 @@ tools/
 private/
 artifacts-*.json
 docs/*.png.json
+
+/RigPulse-*-Debug-win-x64.exe
+/RigPulse-*-Release-win-x64.exe

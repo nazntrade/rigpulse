@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.5 — 2026-11-13
+
+- Recover a docked panel that overlaps the taskbar or loses its Windows work-area reservation after RDP/display changes, even without a shell notification. Validate actual window and work-area geometry instead of trusting cached registration.
+
+
 ## 1.1.4 — 2026-10-25
 
 - Color the CPU+GPU power sum green at 100 W or below, yellow above 100 W through 200 W, orange above 200 W through 300 W, and red above 300 W. Keep unavailable readings gray and individual component watts green.

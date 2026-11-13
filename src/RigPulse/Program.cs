@@ -39,7 +39,7 @@ public static class Program
             if (!mutex.WaitOne(5000)) return;
             var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
             app.DispatcherUnhandledException += (_, e) => { Log(e.Exception); e.Handled = true; };
-            var window = new OverlayWindow(args.Contains("--demo") || args.Contains("--layout-test") || args.Contains("--dock-test"), args.Contains("--peak-demo"));
+            var window = new OverlayWindow(args.Contains("--demo") || args.Contains("--layout-test") || args.Contains("--dock-test") || args.Contains("--dock-recovery-test"), args.Contains("--peak-demo"));
             if (args.Contains("--docked")) window.Loaded += (_, _) => window.SetDockedForTest(true);
             if (args.Contains("--dock-test"))
             {
@@ -61,6 +61,26 @@ public static class Program
                     }
                 };
                 window.Loaded += (_, _) => testTimer.Start();
+            }
+            if (args.Contains("--dock-recovery-test"))
+            {
+                int outputAt = Array.IndexOf(args, "--output");
+                string output = outputAt >= 0 ? args[outputAt + 1] : Path.Combine(Path.GetTempPath(), "rigpulse-recovery.json");
+                var snapshots = new List<object>();
+                int step = 0;
+                var recovery = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(750) };
+                window.Loaded += (_, _) => window.SetDockedForTest(true);
+                recovery.Tick += (_, _) => {
+                    snapshots.Add(new { step, layout = window.LayoutSnapshot() });
+                    CaptureRecoveryFrame(window, output + ".frame-" + step + ".png");
+                    if (step == 1 || step == 5) { window.DisturbDockForTest(step == 5); snapshots.Add(new { step, disturbed = true, layout = window.LayoutSnapshot() }); }
+                    if (++step == 10) {
+                        CaptureRecoveryFrame(window, output + ".png");
+                        recovery.Stop(); window.Close();
+                        File.WriteAllText(output, JsonSerializer.Serialize(new { snapshots, afterClose = window.WorkAreaSnapshot() }, new JsonSerializerOptions { WriteIndented = true }));
+                    }
+                };
+                window.Loaded += (_, _) => recovery.Start();
             }
             if (args.Contains("--layout-test"))
             {
@@ -86,6 +106,16 @@ public static class Program
             app.Run(window);
         }
         catch (Exception e) { Log(e); if (!args.Any(a => a.Contains("worker"))) System.Windows.MessageBox.Show(e.Message, "RigPulse", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+    private static void CaptureRecoveryFrame(Window window, string path)
+    {
+        // Capture the actual desktop pixels: RenderTargetBitmap can be transparent
+        // for a layered no-activate overlay in an RDP session.
+        var rect = DesktopDock.WindowRect(new System.Windows.Interop.WindowInteropHelper(window).Handle);
+        using var bitmap = new System.Drawing.Bitmap(rect.Width, rect.Height);
+        using (var graphics = System.Drawing.Graphics.FromImage(bitmap))
+            graphics.CopyFromScreen(rect.Left, rect.Top, 0, 0, new System.Drawing.Size(rect.Width, rect.Height));
+        bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
     }
     private static void CaptureOverlay(Window window, string path)
     {

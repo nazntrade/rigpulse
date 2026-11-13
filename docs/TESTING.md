@@ -106,3 +106,10 @@ This runs the actual WPF window with synthetic alternating values: compact, dock
 ## 1.1.2 automatic power fitting
 
 The power block uses measured label widths and fixed numeric cells against the selected display's available width. Tests cover an undersized display, an exact fit, a wider display, unchanged totals and preservation of non-power metrics. The full metric list is rebuilt before each fit decision, allowing details to return when space increases. The manual sum-only choice remains a persistent override.
+
+## 1.1.5 dock recovery (2026-11-13)
+
+The failing installed panel was visible and topmost at (0,1061)-(1920,1080), while the taskbar occupied (0,1032)-(1920,1080) and the work area ended at 1032. This confirms taskbar overlap and missing effective reservation; earlier RDP reconnect events provide context, not proof of the exact Windows notification sequence.
+
+`--dock-recovery-test --output <report.json>` exercises native window displacement and shell deregistration while retaining the application's cached registration flag. Ten timed snapshots include recovery and stable follow-up samples; closing releases the reservation. The PNG/GIF show the running test interface with synthetic readings, captured from its native screen rectangle on the interactive desktop. The cropped images show normal readings, while native rectangles in the JSON establish displacement, recovery and placement. A real RDP reconnection is not reproduced by this test.
+`--dock-recovery-test` must run on the interactive desktop (for example, an Interactive scheduled task); a background tool process may have no usable screen DC. The final check uses this mode. Silent recovery while monitoring is paused is not part of this test.

@@ -121,3 +121,9 @@ var displayBounds = new DesktopRect { Left = -1920, Top = 0, Right = 0, Bottom =
 Check(new DesktopRect { Left = -1920, Top = 1010, Right = 0, Bottom = 1040 }.IsValidDock(displayBounds), "Dock accepts negative virtual-desktop origins");
 Check(!new DesktopRect { Left = -1920, Top = 1100, Right = 0, Bottom = 1040 }.IsValidDock(displayBounds), "Dock rejects inverted RDP transition height");
 Check(!new DesktopRect { Left = -1920, Top = 1010, Right = 1, Bottom = 1040 }.IsValidDock(displayBounds), "Dock rejects stale display bounds");
+var dockBounds = new DesktopRect { Left = 0, Top = 0, Right = 1920, Bottom = 1080 };
+var dockArea = new DesktopRect { Left = 0, Top = 0, Right = 1920, Bottom = 1013 };
+Check(DesktopDock.OccupiesReservation(new DesktopRect { Left = 0, Top = 1013, Right = 1920, Bottom = 1032 }, dockBounds, dockArea), "Healthy bottom reservation.");
+Check(!DesktopDock.OccupiesReservation(new DesktopRect { Left = 0, Top = 1061, Right = 1920, Bottom = 1080 }, dockBounds, dockArea), "Taskbar overlap must trigger recovery.");
+Check(!DesktopDock.OccupiesReservation(new DesktopRect { Left = 0, Top = 1013, Right = 1920, Bottom = 1032 }, dockBounds, dockArea with { Bottom = 1032 }), "Lost reservation must trigger recovery even at unchanged coordinates.");
+Console.WriteLine("PASS: real work-area reservation health, taskbar overlap and silent shell state loss.");
