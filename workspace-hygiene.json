@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "remotes": {
+    "github": "origin",
+    "gitlab": "gitlab",
+    "gitflic": "gitflic"
+  },
+  "projectId": "rigpulse",
+  "githubRepository": "nazntrade/rigpulse",
+  "versionSource": {
+    "path": "src/RigPulse/RigPulse.csproj",
+    "format": "csproj"
+  },
+  "sourcePaths": [
+    "installer",
+    "scripts/build.ps1",
+    "scripts/prepare-driver.ps1",
+    "scripts/prepare-sources.ps1",
+    "src",
+    "workspace-hygiene.json"
+  ],
+  "outputs": {
+    "Debug": "RigPulse-{version}-Debug-win-x64.exe",
+    "Release": "RigPulse-{version}-Release-win-x64.exe"
+  },
+  "additionalOutputs": {
+    "Release": [
+      "artifacts/RigPulse-{version}-win-x64.exe",
+      "artifacts/RigPulse-Setup-{version}-win-x64.exe"
+    ]
+  },
+  "stageRoots": [
+    "artifacts/debug",
+    "artifacts/publish"
+  ]
+}

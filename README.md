@@ -118,3 +118,11 @@ See [validation results](docs/TESTING.md) and [design notes](docs/DESIGN.md).
 ![Running recovery test interface with synthetic readings](docs/rigpulse-recovery-1.1.5.png)
 
 [Short recording of the running test interface](docs/rigpulse-recovery-1.1.5.gif). These cropped desktop captures show synthetic sensor values. Native geometry reports validate automatic recovery from displacement and a lost Windows reservation; see [testing notes](docs/TESTING.md#115-dock-recovery-2026-11-13). They do not record a real RDP reconnect.
+
+## Local release retention
+
+The successful local build registers its exact Debug/Release outputs in the shared Agent Desk workflow registry. After the reviewed commit/tag and release files are published, run `powershell.exe -NoProfile -File scripts/finish-release.ps1`. Add `-Preview` for verification without removal. The command verifies branch/tag identities on GitHub, GitLab and GitFlic and hashes of the actual GitHub Release assets, then removes registered archived prior outputs and unchanged registered build stages. A failed publication preserves prior local files. Unique/unregistered files and reports are retained. The source-only shared tool is `D:/Projects/Agent-Desk/scripts/local-build-hygiene.mjs`, overridable with `AGENT_DESK_HYGIENE`.
+
+Publish all registered final outputs, including a distinct legacy installer when a build still produces one. Identical portable aliases need only their retained current copy. Builds alone perform no publication-dependent deletion. `workspace-hygiene.json` declares the exact output roles and dedicated staging locations. Local registries/receipts are under `%LOCALAPPDATA%/Agent Desk/Workspace Hygiene` and are excluded from repository publication.
+
+Staging ownership is established by `begin-build` before compilation; a preexisting unknown tree is retained. The registry includes empty directories, and a flushed write-ahead intent makes partial cleanup retryable even if the final receipt cannot be replaced. Release-tag product/version/packaging inputs must match the pair. Registration alone never authorizes pruning. Completion covers these integrated commands, not arbitrary manual build invocations.
