@@ -32,5 +32,7 @@
   "stageRoots": [
     "artifacts/debug",
     "artifacts/publish"
-  ]
+  ],
+  "gitlabProject": "nazntrade/rigpulse",
+  "releaseIndex": "releases/v{version}.json"
 }
